@@ -18,12 +18,7 @@ public class JugadorController {
     private IJugadorService service;
 
     @GetMapping
-    public List<Jugador> findALL() {
+    public List<Jugador> findAll() {
         return service.findAll();
-    }
-
-    @GetMapping("/{id}")
-    public Jugador findById(@PathVariable Long id) {
-        return service.findById(id);
     }
 }

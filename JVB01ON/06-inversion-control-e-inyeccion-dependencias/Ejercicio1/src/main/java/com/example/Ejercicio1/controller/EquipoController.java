@@ -31,16 +31,8 @@ public class EquipoController {
     }
 
     @GetMapping("/{id}/jugadores")
-    public JugadoresEquipoDTO findJugadorById(@PathVariable Long id) {
-        JugadoresEquipoDTO jugadoresEquipoDTO = new JugadoresEquipoDTO();
-        jugadoresEquipoDTO.setNombre(findById(id).getNombre());
-        jugadoresEquipoDTO.setJugadores(findById(id).getJugadores().stream()
-                .map(Jugador::getNombre)
-                .toList()
-        );
-        return jugadoresEquipoDTO;
+    public JugadoresEquipoDTO findJugadoresById(@PathVariable Long id) {
+        return service.findJugadoresById(id);
     }
-
-
 
 }

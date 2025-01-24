@@ -6,5 +6,4 @@ import java.util.List;
 
 public interface IJugadorService {
     public List<Jugador> findAll();
-    public Jugador findById(Long id);
 }

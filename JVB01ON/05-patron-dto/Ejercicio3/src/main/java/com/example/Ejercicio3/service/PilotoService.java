@@ -1,37 +1,31 @@
 package com.example.Ejercicio3.service;
 
+import com.example.Ejercicio3.dto.PilotosDTO;
 import com.example.Ejercicio3.model.Piloto;
-import com.example.Ejercicio3.repository.PilotoRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
 public class PilotoService implements IPilotoService {
 
-    private PilotoRepository pilotoRepository = new PilotoRepository();
+    private EquipoService service = new EquipoService();
 
     @Override
     public List<Piloto> findAll() {
-        return pilotoRepository.findAll();
-    }
-
-    @Override
-    public String save(Piloto piloto) {
-        pilotoRepository.save(piloto);
-        return "Piloto añadido correctamente";
+        return service.findAll().stream().flatMap(equipo -> equipo.getPilotos().stream()).toList();
     }
 
     @Override
     public Piloto findById(Long id) {
-        return pilotoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No se ha encontrado el piloto"));
+        return findAll().stream()
+                .filter(piloto -> piloto.getId().equals(id))
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
-    public List<Piloto> findPilotosByEquipo(String name) {
-        return pilotoRepository.findPilotosByEquipo(name);
+    public PilotosDTO findPilotosByEquipo(String name) {
+        return service.findPilotosByEquipo(name);
     }
 }

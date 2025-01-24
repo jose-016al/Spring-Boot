@@ -9,5 +9,5 @@ import lombok.Setter;
 public class Ingrediente {
     private Long id;
     private String nombre;
-    private String aptoCeliaco;
+    private boolean aptoCeliaco;
 }

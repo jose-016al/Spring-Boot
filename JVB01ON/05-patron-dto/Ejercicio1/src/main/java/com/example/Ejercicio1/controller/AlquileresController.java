@@ -4,14 +4,13 @@ import com.example.Ejercicio1.dto.PropiedadDTO;
 import com.example.Ejercicio1.modal.Inquilino;
 import com.example.Ejercicio1.modal.Propiedad;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class AlquileresController {
 
-    @GetMapping("/{id}")
-    public PropiedadDTO getPropiedad(@PathVariable Long id) {
+    @GetMapping
+    public PropiedadDTO getPropiedad() {
         Propiedad propiedad = new Propiedad(1L, "Apartamento", "Calle Principal 123, Ciudad", 75.5, 1200.0);
         Inquilino inquilino = new Inquilino(1L, "12345678A", "Juan", "Pérez", "Ingeniero");
 

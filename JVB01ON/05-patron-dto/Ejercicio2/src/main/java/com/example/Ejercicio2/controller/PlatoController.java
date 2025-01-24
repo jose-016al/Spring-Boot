@@ -1,8 +1,7 @@
 package com.example.Ejercicio2.controller;
 
-import com.example.Ejercicio2.dto.PlatosDTO;
+import com.example.Ejercicio2.dto.PlatoDTO;
 import com.example.Ejercicio2.model.Plato;
-import com.example.Ejercicio2.repository.PlatoRepository;
 import com.example.Ejercicio2.service.PlatoService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,23 +27,7 @@ public class PlatoController {
     }
 
     @GetMapping("/celiacos/{id}")
-    public PlatosDTO findCeliacosById(@PathVariable Long id) {
-        PlatosDTO platosDTO = new PlatosDTO();
-
-        Plato plato = platoService.findCeliacosById(id);
-
-        if (plato == null) {
-            plato = platoService.findById(id);
-            if (plato != null) {
-                platosDTO.setNombre(plato.getNombre());
-                platosDTO.setApto("No");
-            }
-        } else {
-            platosDTO.setNombre(plato.getNombre());
-            platosDTO.setApto("Si");
-        }
-
-        return  platosDTO;
+    public PlatoDTO findCeliacosById(@PathVariable Long id) {
+        return platoService.findCeliacosById(id);
     }
-
 }
