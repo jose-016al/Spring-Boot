@@ -15,7 +15,7 @@ import java.util.function.Function;
 @Service
 public class JwtService implements IJwtService {
 
-    private static final String SECRET_KEY = "a8b4d7e6f9c2a1g3h5j7k6l9m2n4o8p0q3r5s7t9u2v4w6x8y0z2A4B6C8D0";
+    private static final String SECRET_KEY = "p3PtICVJBGH45kylyB3eVW7A+Q84Mj5p+JRyIRQ8KvE=";
 
     @Override
     public String getToken(UserDetails user) {
@@ -29,7 +29,7 @@ public class JwtService implements IJwtService {
                 .type("JWT")
                 .and()
                 .subject(user.getUsername())
-                .expiration(new Date(System.currentTimeMillis()+1000*60*24))
+                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 30))
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .claims(extractClaims)
                 .signWith(getKey(), Jwts.SIG.HS256)
