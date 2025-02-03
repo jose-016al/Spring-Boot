@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.jose</groupId>
 	<artifactId>spring-secure-api</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<name>SpringSecureAPI</name>
 	<description>Proyecto en Spring Boot para la implementación de autenticación y autorización con Spring Security y JWT. Simula una tienda con gestión de usuarios y productos, enfocándose en la seguridad y el manejo de tokens.</description>
 	<url/>
