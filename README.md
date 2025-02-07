@@ -742,7 +742,7 @@ Es necesario contar con un Sistema de Gestión de Bases de Datos (SGBD) para man
 En el archivo **`/src/main/resources/application.properties`**, configuraremos los parámetros necesarios para establecer la conexión con la base de datos. Reemplaza los valores en el siguiente ejemplo según los detalles de la base de datos creada:
 ```properties
 spring.jpa.hibernate.ddl-auto=update
-spring.datasource.url=jdbc:mysql://localhost:3306/prueba_jpa?useSSL=false&serverTimezone=UTC
+spring.datasource.url=jdbc:mysql://localhost:3306/prueba_jpa?createDatabaseIfNotExist=true&serverTimezone=UTC
 spring.datasource.username=admin
 spring.datasource.password=admin
 spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
@@ -752,7 +752,7 @@ El archivo **`application.properties`** permite definir múltiples configuracion
 - **`spring.jpa.hibernate.ddl-auto`:**  Define cómo JPA manejará las tablas de la base de datos. El valor `update` indica que las tablas existentes se actualizarán automáticamente en función de las entidades definidas.
 - **`spring.datasource.url`:**  Especifica la URL de la base de datos. Es importante asegurarse de incluir el nombre de la base de datos (en este caso, `prueba_jpa`) y el puerto en el que está disponible (por defecto, 3306 para MySQL).  
   
-  La configuración adicional `?useSSL=false&serverTimezone=UTC` desactiva SSL y establece una zona horaria estándar para evitar problemas relacionados con diferencias de tiempo entre el servidor de la base de datos y la aplicación.
+  La configuración adicional `?createDatabaseIfNotExist=true&serverTimezone=UTC` permite que la base de datos se cree automáticamente si no existe y establece la zona horaria en UTC. Esto ayuda a prevenir problemas de sincronización debidos a diferencias horarias entre el servidor de la base de datos y la aplicación.
 - **`spring.datasource.username`:**  Define el nombre de usuario que se utilizará para acceder a la base de datos.
 - **`spring.datasource.password`:**  Define la contraseña asociada al usuario especificado.
 
@@ -2400,7 +2400,7 @@ security.jwt.expiration-days=30
 security.jwt.secret-key=h9a6p2m9XQ8fgjldRHLv7EwP6+MTODFSfJ4I8gZ0tjo=
 
 spring.jpa.hibernate.ddl-auto=update
-spring.datasource.url=jdbc:mysql://localhost:3306/spring_secure_api?useSSL=false&serverTimezone=UTC
+spring.datasource.url=jdbc:mysql://localhost:3306/spring_secure_api?createDatabaseIfNotExist=true&serverTimezone=UTC
 spring.datasource.username=user
 spring.datasource.password=user
 spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
