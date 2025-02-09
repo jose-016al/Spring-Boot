@@ -1,23 +1,26 @@
 package com.example.Ejercicio1.modal;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Entity
+@Table(name = "personas")
 public class Persona {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
-    private String nombre;
-    private String apellido;
-    private int edad;
+
+    @Column(name = "nombre", nullable = false, length = 50)
+    private String name;
+
+    @Column(name = "apellido", nullable = false, length = 50)
+    private String surname;
+
+    @Column(name = "edad", nullable = false)
+    private int age;
 }

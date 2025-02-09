@@ -7,21 +7,21 @@
 	- [Parámetros en APIs](#parámetros-en-apis)
 		- [@PathVariable](#pathvariable)
 		- [@RequestParam](#requestparam)
-	- [@RequestMapping](#requestMapping)
+	- [@RequestMapping](#requestMapping)ç
+	- [@RequestBody](#requestbody)
+	- [@ResponseBody](#responsebody)
 	- [@PostMapping](#postmapping)
 	- [@PutMapping](#putmapping)
 	- [@DeleteMapping](#deletemapping)
-	- [@RequestBody](#requestbody)
-	- [@ResponseBody](#responsebody)
 - [Lombok](#lombok)
 - [Arquitectura Multicapa](#arquitectura-multicapa)
 - [Inyección de dependencias](#inyección-de-dependencias)
 - [Envioroment](#envioroment)
 	- [Configuración de variables de entorno](#configuración-de-variables-de-entorno)
 	- [Crear nuestras propias variables de entorno](#crear-nuestras-propias-variables-de-entorno)
+- [H2 Database](#h2-database)
 - [JPA e Hibernate](#jpa-e-hibernate)
-	- [Anotaciones](#anotaciones)
-	- [Integración de JPA en Spring Boot](#integración-de-jpa-en-spring-boot)
+	- [Integración de JPA](#integración-de-jpa)
 	- [CRUD](#crud)
 - [Spring Data JPA](#spring-data-jpa)
 	- [Métodos Derivados (Query Methods)](#métodos-derivados-query-methods)
@@ -32,7 +32,7 @@
 - [Excepciones](#excepciones)
 	- [GlobalExceptionHandler](#globalexceptionhandler)
 	- [Excepciones personalizadas](#excepciones-personalizadas)
-	- [ErrorResponse](#errorresponse)
+	- [DTO para respuestas](#dto-para-respuestas)
 - [Spring Security](#spring-security)
 	- [Configuración de Seguridad](#configuración-de-seguridad)
 	- [Implementación de JWT](#implementación-de-jwt)
@@ -101,7 +101,7 @@ Las anotaciones `@PathVariable` y `@RequestParam` en **Spring** permiten extraer
 |**Usos comunes**|Identificadores únicos o elementos obligatorios en la ruta|Filtros, búsquedas o datos opcionales enviados por el cliente|
 ### @PathVariable
 La anotación `@PathVariable` se utiliza para extraer datos directamente de la URL de una solicitud HTTP y vincularlos a los parámetros de un método en el controlador. Es especialmente útil para capturar valores dinámicos definidos como variables en la estructura de la URL.
-#### Ejemplo
+
 Supongamos que tienes una URL como `/usuarios/{id}`, donde `{id}` es el identificador de un usuario. Puedes usar `@PathVariable` para capturar ese `id` y utilizarlo en tu método del controlador:
 ```java
 @GetMapping("/usuarios/{id}")
@@ -112,7 +112,7 @@ public String obtenerUsuarioPorId(@PathVariable Long id) {
 ```
 ### @RequestParam
 La anotación `@RequestParam` se utiliza para extraer datos de los parámetros de consulta (**query parameters**) en solicitudes HTTP, ya sean de tipo **GET** o **POST**. Estos parámetros se envían como parte de la URL, después del símbolo `?`.
-#### Ejemplo
+
 Supongamos que tienes una URL como `/productos?categoria=electronicos`, donde `categoria` es un parámetro de consulta. Puedes usar `@RequestParam` para obtener el valor de ese parámetro:
 ```java
 @GetMapping("/productos")
@@ -121,6 +121,15 @@ public String obtenerProductosPorCategoria(@RequestParam String categoria) {
     return "Lista de productos de la categoría: " + categoria;
 }
 ```
+
+En `@RequestParam` puedes especificar un nombre diferente para el parámetro que esperas recibir en la solicitud. Esto es útil cuando el nombre del parámetro en la URL no coincide con el nombre de la variable en el método. Se hace utilizando `@RequestParam("nombre_parametro")`, así:
+```java
+@GetMapping("/productos")
+public String obtenerProductosPorCategoria(@RequestParam("categoria") String cat) {
+    return "Lista de productos de la categoría: " + cat;
+}
+```
+Aquí, aunque el parámetro en la URL sea `categoria`, en el método lo estamos asignando a la variable `cat`.
 ## @RequestMapping
 La anotación `@RequestMapping` en **Spring** se utiliza para mapear solicitudes HTTP a métodos específicos dentro de un controlador en una aplicación web.
 
@@ -129,7 +138,7 @@ Esta anotación permite definir la URL o patrón de URL que un método del contr
 Además, con `@RequestMapping` es posible especificar los métodos HTTP (como **GET**, **POST**, **PUT**, **DELETE**, entre otros) que el método del controlador manejará.
 
 Una característica importante de esta anotación es que permite incluir variables dentro de la URL, utilizando `{}` para capturar valores dinámicos, y también facilita el manejo de parámetros de solicitud.
-```
+```java
 @RestController
 @RequestMapping("/api")
 public class EjemploController {
@@ -152,57 +161,9 @@ public class UserController {
     // Métodos para manejar solicitudes GET y POST a /usuarios o /clientes
 }
 ```
-## @PostMapping
-La anotación `@PostMapping` en **Spring** se utiliza para mapear solicitudes HTTP de tipo **POST** a métodos específicos dentro de los controladores.
-
-En el contexto de una aplicación web con Spring, `@PostMapping` es comúnmente empleada cuando se trabaja con formularios HTML o cuando se envían datos al servidor mediante una solicitud POST. Esta anotación facilita la gestión y el procesamiento de los datos enviados, permitiendo que el controlador maneje y responda a la solicitud de manera eficiente.
-#### Ejemplo
-Supongamos que tienes una aplicación web donde los usuarios pueden registrarse a través de un formulario. Utilizaremos `@PostMapping` para manejar la solicitud de registro de un nuevo usuario.
-```java
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.ModelAndView;
-
-@Controller
-public class RegistroUsuarioController {
-
-    private final UsuarioService usuarioService;
-
-    @Autowired
-    public RegistroUsuarioController(UsuarioService usuarioService) {
-        this.usuarioService = usuarioService;
-    }
-
-    @PostMapping("/registro")
-    public ModelAndView registrarNuevoUsuario(@RequestParam("nombre") String nombre,
-                                             @RequestParam("email") String email,
-                                             @RequestParam("contrasena") String contrasena) {
-        // Crear un nuevo usuario con los datos proporcionados
-        Usuario nuevoUsuario = new Usuario(nombre, email, contrasena);
-        
-        // Guardar el nuevo usuario en la base de datos a través del servicio de usuarios
-        usuarioService.registrarUsuario(nuevoUsuario);
-
-        // Redirigir a una página de éxito o a otra vista
-        ModelAndView modelAndView = new ModelAndView("exito-registro");
-        modelAndView.addObject("nombreUsuario", nombre);
-        return modelAndView;
-    }
-}
-```
-## @PutMapping
-La anotación `@PutMapping` se utiliza para manejar solicitudes HTTP PUT. Este tipo de solicitudes generalmente se utiliza para actualizar recursos existentes en el servidor.
-
-Cuando trabajemos con JPA, veremos cómo esta anotación puede usarse junto con métodos de un repositorio o servicio para actualizar registros en la base de datos.
-## @DeleteMapping
-La anotación `@DeleteMapping` se utiliza para manejar solicitudes HTTP DELETE. Este tipo de solicitudes se emplea para eliminar recursos del servidor.
-
-En el apartado de JPA, exploraremos cómo esta anotación se utiliza en métodos para eliminar registros de la base de datos.
 ## @RequestBody
 La anotación `@RequestBody` se utiliza para vincular el cuerpo de una solicitud HTTP con un objeto Java en el controlador. Su propósito es recibir datos enviados desde el cliente, como un JSON o XML, y convertirlos automáticamente en una instancia del objeto Java correspondiente, facilitando la manipulación de la información en el servidor.
-#### Ejemplo
+
 Supongamos que se recibe una solicitud POST con datos en formato JSON para crear un nuevo objeto `Producto` en una aplicación web:
 ```java
 import org.springframework.web.bind.annotation.PostMapping;
@@ -228,7 +189,7 @@ La anotación `@ResponseBody` en **Spring** se utiliza en los métodos del contr
 
 - Al anotar un método con `@ResponseBody`, se especifica que el objeto devuelto será serializado automáticamente en el formato adecuado (como JSON o XML) y se incluirá en el cuerpo de la respuesta HTTP, sin pasar por la resolución de vistas.
 - Esta anotación es especialmente útil cuando se desea devolver datos al cliente en formatos como JSON o XML sin necesidad de generar una vista, lo que facilita la construcción de APIs y servicios RESTful.
-#### Ejemplo
+
 Supongamos que se desea devolver un objeto de tipo `Persona` como JSON en la respuesta:
 ```java
 import org.springframework.web.bind.annotation.GetMapping;
@@ -243,6 +204,50 @@ public class PersonaController {
         Persona persona = new Persona("Juan", 30);
         return persona;
     }
+}
+```
+## @PostMapping
+La anotación `@PostMapping` en **Spring** se utiliza para mapear solicitudes HTTP de tipo **POST** a métodos específicos dentro de los controladores.
+
+En el contexto de una aplicación web con Spring, `@PostMapping` es comúnmente empleada cuando se trabaja con formularios HTML o cuando se envían datos al servidor mediante una solicitud POST. Esta anotación facilita la gestión y el procesamiento de los datos enviados, permitiendo que el controlador maneje y responda a la solicitud de manera eficiente.
+
+Supongamos que tienes una aplicación web donde los usuarios pueden registrarse a través de un formulario. Utilizaremos `@PostMapping` para manejar la solicitud de registro de un nuevo usuario.
+```java
+@Controller
+@RequiredArgsConstructor
+public class RegistroUsuarioController {
+
+    private final IUserService userService;
+
+    @PostMapping("/registro")
+    public String registrarNuevoUsuario(@RequestBody User request) {
+        userService.save(request);
+        return "Usuario añadido";
+    }
+}
+```
+## @PutMapping
+La anotación `@PutMapping` se utiliza para manejar solicitudes HTTP PUT. Este tipo de solicitudes generalmente se utiliza para actualizar recursos existentes en el servidor.
+
+Cuando trabajemos con JPA, veremos cómo esta anotación puede usarse junto con métodos de un repositorio o servicio para actualizar registros en la base de datos.
+
+```java
+@PutMapping("/{id}")
+public String update(@PathVariable Long id, @RequestBody Course request) {
+    courseService.update(id, request);
+    return "Curso actualizado";
+}
+```
+## @DeleteMapping
+La anotación `@DeleteMapping` se utiliza para manejar solicitudes HTTP DELETE. Este tipo de solicitudes se emplea para eliminar recursos del servidor.
+
+En el apartado de JPA, exploraremos cómo esta anotación se utiliza en métodos para eliminar registros de la base de datos.
+
+```java
+@DeleteMapping("/{id}")
+public String delete(@PathVariable Long id) {
+    courseService.delete(id);
+    return "Curso Eliminado";
 }
 ```
 # Lombok
@@ -264,7 +269,7 @@ Esta herramienta funciona mediante anotaciones que se aplican directamente a las
 public class Alumno {
     private int id;
     private String nombre;
-	private String apellido;
+    private String apellido;
 }
 ```
 > ⚠️ **Nota Importante**  
@@ -355,6 +360,17 @@ Los DTO son objetos diseñados para transferir datos entre las diferentes capas 
 
 - Permiten desacoplar las entidades del modelo de dominio de las vistas o las respuestas API, asegurando que solo se transmitan los datos necesarios.
 - Son especialmente útiles para gestionar estructuras complejas o proteger información sensible.
+
+Vamos a ver un ejemplo de una **response** personalizada. Es importante tener en cuenta que los **DTOs** (_Data Transfer Objects_) se pueden utilizar tanto para **requests** como para **responses**, y son la práctica habitual.
+
+Cuando creamos una clase que representa una entidad, esta nunca se expone directamente. En su lugar, usamos un **DTO** específico para cada propósito:
+
+- Para recibir datos en una petición, utilizamos un **RequestDTO**.
+- Para devolver datos en una respuesta, utilizamos un **ResponseDTO**.
+
+Por ejemplo, si tenemos la entidad `Equipo`, lo habitual sería contar con `EquipoRequestDTO` para la creación o actualización y `EquipoResponseDTO` para la respuesta.
+
+Además de estos DTOs estándar, también podemos definir respuestas personalizadas para casos específicos, como veremos a continuación.
 #### Ejemplo
 Imaginemos que tenemos dos clases: `Equipo` y `Jugador`. Un equipo contiene una lista de jugadores. Supongamos que en un endpoint queremos obtener todos los jugadores de un equipo, pero no necesitamos mostrar toda la información. Solo nos interesa mostrar el nombre del equipo y el nombre de cada jugador. En un caso como este, resulta útil utilizar un DTO (Data Transfer Object) para estructurar y devolver únicamente los datos que queremos exponer en la API.
 ```java
@@ -578,90 +594,111 @@ public class JwtConfig {
 Con esto, `jwtExpiration` tomará el valor de `JWT_EXPIRATION` si está definida como variable de entorno o `3600` si no lo está.
 
 Este enfoque es útil para cualquier tipo de configuración que queramos gestionar dinámicamente sin modificar el código fuente.
+# H2 Database
+La dependencia de **H2 Database** es bastante útil, ya que simula una base de datos en memoria. Esto resulta muy conveniente cuando estamos desarrollando una API con persistencia, ya que nos permite interactuar con una base de datos sin necesidad de configurar un servidor de gestión de bases de datos (SGBD). Es especialmente útil en ambientes de desarrollo, cuando necesitamos hacer comprobaciones o realizar pruebas sin tener que depender de un SGBD completo.
+
+Para integrar H2 en tu proyecto, simplemente debes añadir la siguiente dependencia en el archivo `pom.xml`:
+```xml
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+na vez añadida la dependencia, podrás empezar a trabajar con H2 de inmediato.
+### Ventajas de usar H2
+Una de las principales ventajas de utilizar H2 es que puedes insertar datos automáticamente al iniciar la aplicación. Para ello, simplemente crea un archivo llamado `import.sql` en el directorio `resources` y añade las instrucciones SQL necesarias para insertar los datos de prueba. De esta forma, cuando levantes tu aplicación, los datos estarán disponibles desde el inicio.
+
+Ejemplo de archivo `import.sql`:
+```sql
+-- Insertar cursos
+INSERT INTO cursos (nombre, tipo_curso, fecha_finalizacion) VALUES ('Java Fundamentals', 'Online', '2025-06-30');
+
+-- Insertar temas para los cursos
+INSERT INTO temas (nombre, descripcion, curso_id) VALUES ('Introduction to Java', 'Basics of Java programming', 1);
+INSERT INTO temas (nombre, descripcion, curso_id) VALUES ('OOP in Java', 'Object-Oriented Programming concepts', 1);
+```
+Con esto, puedes empezar a trabajar con datos de prueba sin necesidad de un SGBD externo, facilitando el desarrollo y las pruebas.
 # JPA e Hibernate
 Existen diversas formas de conectar una aplicación Spring con una base de datos. En este caso, nos enfocaremos en cómo realizar esta conexión utilizando JPA y Hibernate.
 
-Antes de empezar, haremos un repaso de las anotaciones más comunes utilizadas en JPA. Si necesitas una explicación más detallada, consulta [guía java](https://github.com/jose-016al/Java?tab=readme-ov-file#jpa).
+Antes de empezar, haremos un repaso de las anotaciones más comunes utilizadas en JPA.
 
 El principal objetivo de Hibernate es mapear las clases del modelo de datos de una aplicación y convertirlas o asociarlas con bases de datos. Como se mencionó anteriormente, esto se logra mediante anotaciones, que son similares a las utilizadas con EclipseLink.
-## Anotaciones
 
-| **Anotación**                                               | **Descripción**                                                                                                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **@Entity**                                                 | Se utiliza para mapear las clases que serán entidades (tablas) en la base de datos.                                                              |
-| **@Table**                                                  | Opcional. Define el nombre de la tabla asociada a la entidad. Si no se utiliza, JPA asigna el nombre de la clase como nombre de la tabla.        |
-| **@Id**                                                     | Indica la clave primaria (primary key) de una entidad.                                                                                           |
-| **@GeneratedValue**                                         | Configura cómo se generará automáticamente el valor de la clave primaria. Las estrategias incluyen: Auto, Identity, Sequence y Table             |
-| **@Column**                                                 | Mapear atributos de una clase con columnas de una tabla. Opcional, ya que JPA toma el nombre del atributo como nombre de la columna por defecto. |
-| **@OneToOne, @OneToMany,**  <br>**@ManyToOne, @ManyToMany** | Define relaciones entre entidades, reflejadas como relaciones entre tablas: uno a uno, uno a muchos, muchos a uno o muchos a muchos.             |
-| **@JoinColumn**                                             | Especifica las uniones entre tablas necesarias para representar las relaciones entre entidades.                                                  |
-### Estrategias de @GeneratedValue
-
-| **Estrategia** | **Descripción**                                                                                                                               |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auto**       | Estrategia por defecto. Hibernate selecciona automáticamente el método más adecuado según el proveedor de base de datos configurado.          |
-| **Identity**   | Utilizada principalmente para claves primarias autoincrementales. Hibernate delega la generación del valor a la base de datos.                |
-| **Sequence**   | Permite generar secuencias numéricas personalizables. Por defecto, incrementa en 1, pero se puede ajustar según las necesidades del proyecto. |
-| **Table**      | Usa una tabla específica para almacenar y gestionar los valores de claves primarias, permitiendo una mayor personalización y control.         |
-### Ejemplos de Uso
-#### Entidad Básica con Clave Primaria
+| **Anotación**                                               | **Descripción**                                                                                                                                            |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **@Entity**                                                 | Se utiliza para mapear las clases que serán entidades (tablas) en la base de datos.                                                                        |
+| **@Table**                                                  | Opcional. Define el nombre de la tabla asociada a la entidad. Si no se utiliza, JPA asigna el nombre de la clase como nombre de la tabla.                  |
+| **@Id**                                                     | Indica la clave primaria (primary key) de una entidad.                                                                                                     |
+| **@GeneratedValue**                                         | Configura cómo se generará automáticamente el valor de la clave primaria. Las estrategias incluyen: Auto, Identity, Sequence y Table                       |
+| **@Column**                                                 | Mapear atributos de una clase con columnas de una tabla. Opcional, ya que JPA toma el nombre del atributo como nombre de la columna por defecto.           |
+| **@OneToOne, @OneToMany,**  <br>**@ManyToOne, @ManyToMany** | Define relaciones entre entidades, reflejadas como relaciones entre tablas: uno a uno, uno a muchos, muchos a uno o muchos a muchos.                       |
+| **@JoinColumn**                                             | Especifica las uniones entre tablas necesarias para representar las relaciones entre entidades.                                                            |
+| **@Cascade**                                                | Controla el comportamiento de las operaciones en cascada, como `CascadeType.ALL` para propagar operaciones como persistencia, actualización y eliminación. |
+| **orphanRemoval**                                           | Elimina de forma automática las entidades huérfanas, es decir, aquellas que ya no tienen referencias de otros objetos.                                     |
+### Estrategias de `@GeneratedValue`
+Anteriormente mencionamos que existen distintas estrategias (`strategy`) para definir cómo se genera automáticamente el valor de la clave primaria en JPA. Ahora, veamos cada una con más detalle:
+- **`AUTO`**: Es la estrategia por defecto. Hibernate selecciona automáticamente el método más adecuado según el proveedor de base de datos configurado.
+- **`IDENTITY`**: Se usa principalmente para claves primarias autoincrementales. En esta estrategia, la base de datos es la encargada de generar el valor de la clave primaria, y Hibernate la toma directamente después de la inserción.
+- **`SEQUENCE`**: Permite generar valores de clave primaria mediante secuencias numéricas. Por defecto, los valores se incrementan de uno en uno, pero es posible personalizar este comportamiento. Es una estrategia común en bases de datos como PostgreSQL y Oracle.
+- **`TABLE`**: Utiliza una tabla especial para gestionar los valores de las claves primarias. Aunque ofrece mayor control y personalización, su rendimiento suele ser inferior en comparación con otras estrategias.
+### Ejemplo de Relación 1:N / N:1 (Uno a Muchos / Muchos a Uno)
+Esta es una relación entre `Course` y `Subject`, donde un curso puede tener muchos temas, pero cada tema pertenece a un solo curso. Al establecer el `cascade = CascadeType.ALL` y `orphanRemoval = true` en el lado de `Course`, se asegura que las operaciones sobre un curso (como la eliminación) también afecten a los temas relacionados, y que si un tema es desasociado de un curso, se elimine de la base de datos.
+#### **Entidad `Course` (Curso):**
 ```java
 @Entity
-@Table(name = "usuarios")
-public class User {
+@Table(name = "cursos")
+public class Course {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_curso")
     private Long id;
 
     @Column(name = "nombre", nullable = false)
     private String name;
 
-    // Getters y Setters
+    @Column(name = "tipo_curso", nullable = false)
+    private String type;
+
+    @Column(name = "fecha_finalizacion", nullable = false)
+    private LocalDate endDate;
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Subject> subjectList;
 }
 ```
-### Relaciones entre Entidades
-#### **1. Relación @OneToOne** (Un usuario tiene un perfil)
+#### **Entidad `Subject` (Tema):**
 ```java
 @Entity
-@Table(name = "perfiles")
-public class Profile {
+@Table(name = "temas")
+public class Subject {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_tema")
     private Long id;
 
-    @Column(name = "bio")
-    private String bio;
+    @Column(name = "nombre", nullable = false)
+    private String name;
 
-    @OneToOne
-    @JoinColumn(name = "usuario_id")
-    private User user;
-
-    // Getters y Setters
-}
-```
-#### **2. Relación @OneToMany y @ManyToOne** (Un usuario puede tener muchos pedidos)
-```java
-@Entity
-@Table(name = "pedidos")
-public class Order {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "descripcion")
+    private String description;
 
     @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
-    private User user;
-
-    @Column(name = "total")
-    private Double total;
-
-    // Getters y Setters
+    @JoinColumn(name = "curso_id", nullable = false)
+    private Course course;
 }
 ```
-
+#### Explicación:
+- **@ManyToOne**: Indica que muchos `Subject` pueden estar relacionados con un solo `Course`.
+- **@JoinColumn**: Define la columna que actuará como la clave foránea que referencia al `Course` desde el `Subject`.
+- **cascade = CascadeType.ALL**: Significa que todas las operaciones de persistencia (como persistir, actualizar y eliminar) realizadas sobre un `Course` también se aplicarán a los `Subject` asociados.
+- **orphanRemoval = true**: Si un `Subject` es eliminado de la lista `subjectList` de un `Course`, se eliminará automáticamente de la base de datos.
+### Ejemplo de Relación 1:1 (Uno a Uno)
+En este ejemplo, una entidad `User` tiene un `UserProfile`, y cada perfil de usuario pertenece a un solo usuario.
+#### **Entidad `User`**
 ```java
 @Entity
 @Table(name = "usuarios")
@@ -669,44 +706,55 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_usuario")
     private Long id;
 
     @Column(name = "nombre", nullable = false)
     private String name;
 
-    @OneToMany(mappedBy = "user")
-    private List<Order> orders;
-
-    // Getters y Setters
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private UserProfile profile;
 }
 ```
-**3. Relación @ManyToMany** (Un usuario puede tener varios roles y un rol puede pertenecer a varios usuarios)
+####  **Entidad `UserProfile`**
 ```java
 @Entity
-@Table(name = "roles")
-public class Role {
+@Table(name = "perfiles_usuario")
+public class UserProfile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_perfil")
     private Long id;
 
-    @Column(name = "nombre", unique = true, nullable = false)
-    private String name;
+    @Column(name = "direccion")
+    private String address;
 
-    @ManyToMany(mappedBy = "roles")
-    private List<User> users;
+    @Column(name = "telefono")
+    private String phone;
 
-    // Getters y Setters
+    @OneToOne
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private User user;
 }
 ```
-
+#### **Explicación:**
+- **`@OneToOne`**: Indica una relación uno a uno.
+- **`mappedBy = "user"`**: Define el lado inverso de la relación en `User`.
+- **`@JoinColumn(name = "usuario_id")`**: Especifica la clave foránea en `UserProfile` que apunta al `User`.
+- **`cascade = CascadeType.ALL`**: Si se elimina un usuario, también se elimina su perfil.
+- **`orphanRemoval = true`**: Si un perfil se desasocia de un usuario, se elimina de la base de datos.
+### Ejemplo de Relación N:M (Muchos a Muchos)
+Aquí, un estudiante puede inscribirse en múltiples cursos, y cada curso puede tener múltiples estudiantes inscritos.
+#### **Entidad `Student` (Estudiante)**
 ```java
 @Entity
-@Table(name = "usuarios")
-public class User {
+@Table(name = "estudiantes")
+public class Student {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_estudiante")
     private Long id;
 
     @Column(name = "nombre", nullable = false)
@@ -714,28 +762,63 @@ public class User {
 
     @ManyToMany
     @JoinTable(
-        name = "usuario_roles",
-        joinColumns = @JoinColumn(name = "usuario_id"),
-        inverseJoinColumns = @JoinColumn(name = "rol_id")
+        name = "inscripciones",
+        joinColumns = @JoinColumn(name = "estudiante_id"),
+        inverseJoinColumns = @JoinColumn(name = "curso_id")
     )
-    private List<Role> roles;
-
-    // Getters y Setters
+    private List<Course> courses;
 }
-
 ```
-## Integración de JPA en Spring Boot
+#### **Entidad `Course` (Curso) con relación N:M**
+```java
+@Entity
+@Table(name = "cursos")
+public class Course {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_curso")
+    private Long id;
+
+    @Column(name = "nombre", nullable = false)
+    private String name;
+
+    @Column(name = "tipo_curso", nullable = false)
+    private String type;
+
+    @Column(name = "fecha_finalizacion", nullable = false)
+    private LocalDate endDate;
+
+    @ManyToMany(mappedBy = "courses")
+    private List<Student> students;
+}
+```
+#### **Explicación:**
+- **`@ManyToMany`**: Indica una relación muchos a muchos.
+- **`@JoinTable`**: Define la tabla intermedia (`inscripciones`) que almacena las relaciones entre `Student` y `Course`.
+- **`joinColumns`**: Clave foránea de la tabla `Student`.
+- **`inverseJoinColumns`**: Clave foránea de la tabla `Course`.
+- **`mappedBy = "courses"`**: Define el lado inverso en la entidad `Course`.
+## Integración de JPA
 Ahora que ya conocemos los conceptos de JPA y su principal proveedor, Hibernate, vamos a abordar cómo gestionar un proyecto Spring para implementar la persistencia de datos.
 ### Paso 1: Crear el proyecto
-Utilizamos **Spring Initializr** para generar un nuevo proyecto, especificando las dependencias necesarias para implementar la persistencia. Las dependencias que añadiremos son:
+Para comenzar, utilizamos **Spring Initializr** para generar un nuevo proyecto con las dependencias necesarias para la persistencia. En este caso, añadiremos las siguientes:
 
-- **Spring Data JPA**
-- **H2 Database**
-- **MySQL Driver**
-#### Nota sobre H2 Database
-**H2** es una base de datos lógica y embebida que permite trabajar sin necesidad de configurar un servidor de base de datos externo. Aunque no será utilizada en este caso, ya que contamos con una base de datos **MySQL** previamente creada, es importante mencionarla, ya que es una herramienta muy útil para pruebas rápidas y prototipos.
+- **Spring Data JPA** → Permite la integración con JPA y facilita el acceso a la base de datos.
+- **MySQL Driver** → Necesario para conectarnos a una base de datos MySQL.
 
-![annotations-jpa](./img/annotations-jpa.png)
+Si ya tenemos un proyecto creado, podemos agregar estas dependencias manualmente en el archivo `pom.xml`:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
 ### Paso 2: Configurar el SGBD
 Es necesario contar con un Sistema de Gestión de Bases de Datos (SGBD) para manejar la base de datos de nuestra aplicación. En este caso, crearemos una base de datos a la que se conectará nuestra aplicación, junto con un usuario y una contraseña que permitan el acceso.
 ### Paso 3: Configurar `application.properties`
@@ -774,61 +857,111 @@ Una vez completada la integración con la base de datos, pasamos a implementar u
 ### Paso 1: Crear una entidad
 En primer lugar, crearemos una clase que será tratada como una entidad, es decir, representará una tabla en la base de datos. Esta clase formará parte de la **capa `model`** dentro de nuestro patrón multicapa.
 ```java
-@Getter @Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@Entity
-public class Persona {
-    @Id
-    @GeneratedValue(strategy=GenerationType.SEQUENCE)
-    private Long id;
-    private String nombre;
-    private String apellido;
-    private int edad;
+@Getter @Setter  
+@NoArgsConstructor  
+@AllArgsConstructor  
+@Builder  
+@Entity  
+@Table(name = "personas")  
+public class Persona {  
+  
+    @Id  
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)  
+    private Long id;  
+  
+    @Column(name = "nombre", nullable = false, length = 50)  
+    private String name;  
+  
+    @Column(name = "apellido", nullable = false, length = 50)  
+    private String surname;  
+  
+    @Column(name = "edad", nullable = false)  
+    private int age;  
 }
 ```
+> **Nota Importante**  
+> JPA requiere un **constructor sin argumentos** para instanciar entidades correctamente. Si no se define, se generará un error de instanciación. Para evitarlo, usa `@NoArgsConstructor` de Lombok.
 ### Paso 2: Crear la interfaz y su implementación
 El siguiente paso será crear una **interfaz** que definirá los métodos que utilizaremos en nuestro CRUD. Posteriormente, implementaremos esta interfaz en una clase, donde añadiremos la lógica necesaria para procesar los datos que obtendremos del **repository**
 
 Toda esta lógica y estructura formará parte de la **capa `service`** dentro del patrón multicapa.
 #### Interfaz del service
 ```java
-public interface IPersonaService {
-    public List<Persona> getPersonas();
-    public void savePersona (Persona persona);
-    public void deletePersona (Long id);
-    public Persona findPersona (Long id);
+public interface IPersonaService {  
+    public List<PersonaResponseDTO> findAll();  
+    public void save(PersonaRequestDTO request);  
+    public void delete(Long id);  
+    public PersonaResponseDTO update(Long id, PersonaRequestDTO request);  
 }
 ```
 #### Clase que implementa la interfaz
 ```java
-@Service
-public class PersonaService implements IPersonaService {
-
-    @Autowired
-    private PersonaRepository persoRepo;
-
-    @Override
-    public List<Persona> getPersonas () {
-        return persoRepo.findAll();
-    }
-
-    @Override
-    public void savePersona(Persona perso) {
-        persoRepo.save(perso);
-    }
-
-    @Override
-    public void deletePersona(Long id) {
-        persoRepo.deleteById(id);
-    }
-
-    @Override
-    public Persona findPersona(Long id) {
-        return persoRepo.findById(id).orElse(null);
-    }
+@Service  
+@RequiredArgsConstructor  
+public class PersonaService implements IPersonaService {  
+  
+    private final PersonaRepository repository;  
+  
+    @Override  
+    public List<PersonaResponseDTO> findAll() {  
+        return repository.findAll().stream()  
+                .map(persona -> PersonaResponseDTO.builder()  
+                        .id(persona.getId())  
+                        .name(persona.getName())  
+                        .surname(persona.getSurname())  
+                        .age(persona.getAge())  
+                        .build()  
+                )  
+                .toList();  
+    }  
+  
+    @Override  
+    public void save(PersonaRequestDTO persona) {  
+        repository.save(Persona.builder()  
+                .name(persona.getName())  
+                .surname(persona.getSurname())  
+                .age(persona.getAge())  
+                .build()  
+        );  
+    }  
+  
+    @Override  
+    public void delete(Long id) {  
+        repository.deleteById(id);  
+    }  
+  
+    @Override  
+    public PersonaResponseDTO update(Long id, PersonaRequestDTO request) {  
+        Optional<Persona> optionalPersona = repository.findById(id);  
+  
+        if (optionalPersona.isEmpty()) {  
+            return null;  
+        }  
+  
+        Persona persona = optionalPersona.get();  
+        persona.setName(request.getName());  
+        persona.setSurname(request.getSurname());  
+        persona.setAge(request.getAge());  
+  
+        repository.save(persona);  
+  
+        return PersonaResponseDTO.builder()  
+                .id(persona.getId())  
+                .name(persona.getName())  
+                .surname(persona.getSurname())  
+                .age(persona.getAge())  
+                .build();  
+    }  
 }
 ```
+> **⚠️ Importante:**  
+> Para realizar una **actualización** (update) en Hibernate, no existe un método específico como en **EclipseLink**. Por lo tanto, el proceso se realiza de la siguiente manera:
+> 
+> 1. **Buscar la entidad a editar:** Localizar en la base de datos el objeto que se desea modificar.
+> 2. **Establecer los nuevos valores:** Modificar los atributos necesarios en el objeto recuperado.
+> 3. **Guardar los cambios:** Enviar el objeto actualizado a la base de datos utilizando el método **`save`**.
+> 
+> Es importante recordar que el método **`save`** en Hibernate no solo se utiliza para crear nuevos registros, sino también para actualizar los existentes, ya que su función principal es "guardar" los da
 ### Paso 3: Crear la interfaz del repositorio
 El siguiente paso es crear una **interfaz** para el repositorio que extienda de **`JpaRepository`**, una clase proporcionada por Spring Data JPA encargada del manejo de repositorios de manera predeterminada.
 
@@ -853,98 +986,41 @@ public interface PersonaRepository extends JpaRepository<Persona,Long> {
 ### Paso 4: Crear el controlador
 Finalmente, debemos crear el **controlador**, que se ubicará en la **capa `controller`**. Aunque en el patrón multicapa también existe la capa de **DTO** (Data Transfer Object), en este ejemplo no la utilizaremos.
 ```java
-@RestController
-@RequestMapping("/personas")
-public class PersonaController {
-
-    @Autowired
-    private IPersonaService personaServ;
-
-    @GetMapping
-    public List<Persona> getPersonas() {
-        return personaServ.getPersonas();
-    }
-
-    @PostMapping("/add")
-    public String savePersona(@RequestBody Persona perso) {
-        personaServ.savePersona(perso);
-        return "Persona creada correctamente";
-    }
-
-    @DeleteMapping("/delete/{id}")
-    public String deletePersona (@PathVariable Long id) {
-        personaServ.deletePersona(id);
-        return "Persona eliminadacorrectamente";
-    }
-
+@RestController  
+@RequestMapping("/personas")  
+@RequiredArgsConstructor  
+public class PersonaController {  
+    private final IPersonaService service;  
+  
+    @GetMapping  
+    public List<PersonaResponseDTO> findAll() {  
+        return service.findAll();  
+    }  
+  
+    @PostMapping  
+    public String save(@RequestBody PersonaRequestDTO persona) {  
+        service.save(persona);  
+        return "Persona añadida correctamente";  
+    }  
+  
+    @DeleteMapping("/delete/{id}")  
+    public String delete(@PathVariable Long id) {  
+        service.delete(id);  
+        return "Persona eliminada correctamente";  
+    }  
+  
     @PutMapping("/edit/{id}")  
-    public Persona edit(@PathVariable Long id,  
-                        @RequestParam ("nombre") String nombreEdit,  
-                        @RequestParam ("apellido") String apellidoEdit,  
-                        @RequestParam ("edad") int edadEdit) {  
-        return personaServ.edit(id, nombreEdit, apellidoEdit, edadEdit);
-    }
+    public PersonaResponseDTO update(@PathVariable Long id, @RequestBody PersonaRequestDTO persona) {  
+        return service.update(id, persona);  
+    }  
 }
 ```
-> **⚠️ Importante:**  
-> Para realizar una **actualización** (update) en Hibernate, no existe un método específico como en **EclipseLink**. Por lo tanto, el proceso se realiza de la siguiente manera:
-> 
-> 1. **Buscar la entidad a editar:** Localizar en la base de datos el objeto que se desea modificar.
-> 2. **Establecer los nuevos valores:** Modificar los atributos necesarios en el objeto recuperado.
-> 3. **Guardar los cambios:** Enviar el objeto actualizado a la base de datos utilizando el método **`save`**.
-> 
-> Es importante recordar que el método **`save`** en Hibernate no solo se utiliza para crear nuevos registros, sino también para actualizar los existentes, ya que su función principal es "guardar" los da
 # Spring Data JPA
-Spring Data JPA nos permite realizar consultas personalizadas mediante diferentes enfoques: **métodos derivados**, **JPQL con @Query**, y **SQL nativo con @Query**. A continuación, se documentan las tres formas.
+Spring Data JPA nos permite realizar consultas personalizadas mediante diferentes enfoques. A continuación, se explican las tres principales formas de consulta:
 
-Veamos el ejemplo con una entidad `Persona`:
-```java
-@Getter @Setter
-@Entity
-public class Persona {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String name;
-    private int age;
-}
-```
-## Métodos Derivados (Query Methods)
-Los métodos derivados aprovechan el nombre del método para generar consultas automáticamente en función de ciertas palabras clave.
-
-El repositorio podría ser:
-```java
-@Repository
-public interface PersonaRepository extends JpaRepository<Persona, Long> {
-    List<Persona> findByName(String name);
-}
-```
-Spring Data JPA interpreta el nombre del método y genera automáticamente la consulta correspondiente.
-## JPQL con @Query
-Con `@Query`, puedes escribir consultas personalizadas utilizando **JPQL** (Java Persistence Query Language). JPQL está basado en entidades y no directamente en tablas.
-
-Si quieres buscar personas por su nombre:
-```
-@Repository
-public interface PersonaRepository extends JpaRepository<Persona, Long> {
-    @Query("SELECT p FROM Persona p WHERE p.name = :name")
-    List<Persona> findByNameJPQL(@Param("name") String name);
-}
-```
-Esta consulta utiliza la entidad `Persona` y sus atributos para construir la consulta.
-## SQL Nativo con @Query
-Si necesitas escribir consultas directamente en SQL (por ejemplo, para optimización o por requisitos específicos), puedes usar `@Query` con el atributo `nativeQuery = true`.
-
-Si tienes una tabla en la base de datos llamada `personas` y quieres buscar por nombre:
-```
-@Repository
-public interface PersonaRepository extends JpaRepository<Persona, Long> {
-    @Query(value = "SELECT * FROM personas WHERE name = :name", nativeQuery = true)
-    List<Persona> findByNameNative(@Param("name") String name);
-}
-```
-Esto ejecutará directamente una consulta SQL contra la base de datos.
-## Comparativa
+- **Métodos derivados**: Se basan en la nomenclatura del método para generar automáticamente la consulta.
+- **JPQL (@Query)**: Usa el **Java Persistence Query Language**, que trabaja sobre entidades en lugar de tablas.
+- **SQL Nativo (@Query)**: Permite escribir consultas directamente en SQL, accediendo a tablas y columnas reales.
 
 | Característica             | Métodos Derivados | JPQL con @Query       | SQL Nativo con @Query       |
 | -------------------------- | ----------------- | --------------------- | --------------------------- |
@@ -952,6 +1028,92 @@ Esto ejecutará directamente una consulta SQL contra la base de datos.
 | **Flexibilidad**           | Limitada          | Alta                  | Muy alta                    |
 | **Legibilidad**            | Muy buena         | Buena                 | Media                       |
 | **Compatibilidad con JPA** | Total             | Total                 | Depende de la base de datos |
+
+## Métodos Derivados (Query Methods)
+Los **métodos derivados** aprovechan la convención de nombres para generar automáticamente consultas en función de ciertas palabras clave.
+
+| Palabra clave                                    | Descripción                                                                  | Ejemplo                                      |
+| ------------------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------- |
+| **findBy**                                       | Busca por un atributo específico                                             | `findByName(String name)`                    |
+| **findByXAndY**                                  | Realiza una búsqueda por múltiples atributos                                 | `findByNameAndAge(String name, int age)`     |
+| **findByXOrY**                                   | Realiza una búsqueda por uno u otro atributo                                 | `findByNameOrAge(String name, int age)`      |
+| **findByXNotNull**                               | Busca los registros donde el atributo no sea nulo                            | `findByNameNotNull()`                        |
+| **findByXIsNull**                                | Busca los registros donde el atributo sea nulo                               | `findByNameIsNull()`                         |
+| **findByXBetween**                               | Busca registros en un rango de valores                                       | `findByAgeBetween(int startAge, int endAge)` |
+| **findByXGreaterThan**                           | Busca registros con un atributo mayor que un valor dado                      | `findByAgeGreaterThan(int age)`              |
+| **findByXLessThan**                              | Busca registros con un atributo menor que un valor dado                      | `findByAgeLessThan(int age)`                 |
+| **findByXGreaterThanEqual**                      | Busca registros con un atributo mayor o igual a un valor dado                | `findByAgeGreaterThanEqual(int age)`         |
+| **findByXLessThanEqual**                         | Busca registros con un atributo menor o igual a un valor dado                | `findByAgeLessThanEqual(int age)`            |
+| **findByXLike**                                  | Realiza una búsqueda de tipo "LIKE"                                          | `findByNameLike(String name)`                |
+| **findByXStartingWith**                          | Busca registros cuyo atributo empiece con el valor dado                      | `findByNameStartingWith(String prefix)`      |
+| **findByXEndingWith**                            | Busca registros cuyo atributo termine con el valor dado                      | `findByNameEndingWith(String suffix)`        |
+| **findByXContaining**                            | Busca registros cuyo atributo contenga el valor dado                         | `findByNameContaining(String partOfName)`    |
+| **findByXIgnoreCase**                            | Realiza una búsqueda ignorando mayúsculas y minúsculas                       | `findByNameIgnoreCase(String name)`          |
+| **findByXOrderByYAsc** / **findByXOrderByYDesc** | Ordena los resultados por un atributo en orden ascendente o descendente      | `findByAgeOrderByNameAsc(int age)`           |
+| **countBy**                                      | Devuelve el número de registros que coinciden con los criterios dados        | `countByName(String name)`                   |
+| **existsBy**                                     | Verifica si existe al menos un registro que coincida con los criterios dados | `existsByName(String name)`                  |
+| **deleteBy**                                     | Elimina registros que coincidan con los criterios dados                      | `deleteByName(String name)`                  |
+
+Por ejemplo, si tenemos una entidad **Persona** como en el caso anterior y queremos buscar por el nombre, podemos utilizar el prefijo `findBy` seguido del nombre de la propiedad, en este caso `name`, lo que resultaría en el método `findByName`.
+```java
+@Repository
+public interface PersonaRepository extends JpaRepository<Persona, Long> {
+    List<Persona> findByName(String name);
+}
+```
+También podemos realizar búsquedas más avanzadas usando palabras clave adicionales. Por ejemplo, para realizar una búsqueda por nombre donde no importe si la palabra buscada está en mayúsculas o minúsculas y se contenga parte del nombre, usamos `Containing` e `IgnoreCase`.
+
+Veamos un ejemplo con la entidad **Course**, donde buscamos cursos que contengan la palabra "java" ignorando mayúsculas y minúsculas:
+```java
+@Repository
+public interface CourseRepository extends JpaRepository<Course, Long> {
+    List<Course> findByNameContainingIgnoreCase(String name);
+}
+```
+Este método devolvería todos los cursos cuyo nombre contenga la palabra "java", independientemente de las mayúsculas o minúsculas, como `Java Basics`, `Advanced Java`, etc.
+## JPQL con @Query
+La anotación `@Query` permite escribir consultas personalizadas utilizando **JPQL** (Java Persistence Query Language). A diferencia de SQL nativo, **JPQL opera sobre entidades y sus atributos en lugar de tablas y columnas directamente**.
+
+Por ejemplo, si queremos buscar personas por su nombre, podemos definir el siguiente método en nuestro repositorio:
+```
+@Repository
+public interface PersonaRepository extends JpaRepository<Persona, Long> {
+    @Query("SELECT p FROM Persona p WHERE p.name = :name")
+    List<Persona> findByNameJPQL(@Param("name") String name);
+}
+```
+En esta consulta:
+- **`Persona`** es el nombre de la entidad sobre la que estamos consultando.
+- **`:name`** es un parámetro que se vincula mediante `@Param("name")`.
+
+Ahora veamos otro ejemplo en el que obtenemos todos los temas de un curso específico. Este es un caso común cuando trabajamos con relaciones entre tablas:
+```java
+@Repository
+public interface SubjectRepository extends JpaRepository<Subject, Long> {
+
+    @Query("SELECT s FROM Subject s WHERE s.course.id = :id")
+    List<Subject> findByCourseId(@Param("id") Long id);
+}
+```
+Aquí, la consulta recupera todas las entidades `Subject` que pertenecen a un curso con un `id` específico. Esto nos permite trabajar con datos relacionados sin necesidad de escribir SQL nativo.
+## SQL Nativo con @Query
+Si necesitas ejecutar consultas directamente en **SQL** (por razones de rendimiento, compatibilidad con funciones específicas de la base de datos o requisitos particulares), puedes utilizar la anotación `@Query` con el atributo `nativeQuery = true`.
+
+Por ejemplo, si en tu base de datos tienes una tabla llamada `personas` y quieres buscar registros por nombre, puedes definir el siguiente método en tu repositorio:
+```
+@Repository
+public interface PersonaRepository extends JpaRepository<Persona, Long> {
+    @Query(value = "SELECT * FROM personas WHERE name = :name", nativeQuery = true)
+    List<Persona> findByNameNative(@Param("name") String name);
+}
+```
+### ¿Cómo funciona?
+
+- `value = "SELECT * FROM personas WHERE name = :name"` → Define una consulta en SQL puro, operando directamente sobre la base de datos.
+- `nativeQuery = true` → Indica que la consulta es **SQL nativo** en lugar de **JPQL**.
+- `@Param("name")` → Asocia el parámetro del método a la consulta SQL.
+
+> ⚠ **Nota:** Al usar consultas nativas, es importante asegurarse de que los nombres de las tablas y columnas coincidan exactamente con los definidos en la base de datos, ya que **JPA no realiza ninguna conversión automática**.
 # ResponseEntity
 `ResponseEntity` es una clase de Spring Framework que permite construir respuestas HTTP completas de manera programática. Se utiliza principalmente en controladores RESTful para proporcionar respuestas detalladas al cliente. Con `ResponseEntity`, puedes controlar:
 
@@ -1071,115 +1233,108 @@ public ResponseEntity<String> fallo() {
 }
 ```
 ## Ejemplo de Uso Típico de `ResponseEntity` en un Controlador
-### Explicación de los Métodos
-- **POST `/registrar`**: Registra un nuevo paciente y devuelve una respuesta con un código de estado `201 Created`.
-- **GET `/lista`**: Devuelve la lista de todos los pacientes en formato `List<PatientDTO>` con un código de estado `200 OK`.
-- **DELETE `/eliminar/{id}`**: Elimina un paciente por su `ID`. Si la operación es exitosa, devuelve un código de estado `204 No Content`. Si no se encuentra el paciente, devuelve `404 Not Found` con un mensaje de error.
-- **GET `/buscar/{id}`**: Busca un paciente por su `ID`. Si se encuentra, devuelve el paciente con un código de estado `200 OK`. Si no se encuentra, devuelve un código de estado `404 Not Found`.
-- **PUT `/editar/{id}`**: Actualiza un paciente. Si la actualización es exitosa, devuelve el paciente actualizado con un código de estado `200 OK`. Si el paciente no existe, devuelve un código `404 Not Found` con un mensaje de error.
-### Aspectos Clave
-- Se utiliza `ResponseEntity` para controlar los códigos de estado HTTP y los mensajes de respuesta de manera flexible.
-- Se manejan respuestas tanto positivas (como `200 OK`, `201 Created`) como negativas (`404 Not Found`, `204 No Content`).
-- Se incluye un ejemplo de cómo manejar mensajes de error usando `ResponseEntity.status(HttpStatus.NOT_FOUND)`.
-
+En este ejemplo, utilizamos `ResponseEntity` para gestionar las respuestas HTTP en un **controlador REST** de cursos.
 ```java
-package com.example.Ejercicio2.controller;
-
-import com.example.Ejercicio2.dto.PatientDTO;
-import com.example.Ejercicio2.model.Patient;
-import com.example.Ejercicio2.service.IPatientService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-
 @RestController
-@RequestMapping("/pacientes")
-public class PatientController {
+@RequestMapping("/cursos")
+@RequiredArgsConstructor
+@Tag(name = "Cursos")
+public class CourseController {
 
-    @Autowired
-    private IPatientService service;
+    private final ICourseService courseService;
 
-    // Registrar un paciente
-    @PostMapping("/registrar")
-    public ResponseEntity<String> save(@RequestBody Patient patient) {
-        service.save(patient);
+    @PostMapping
+    public ResponseEntity<String> save(@RequestBody @Valid CourseRequestDTO request) {
+        courseService.save(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Paciente registrado correctamente");
+                .body("Curso registrado correctamente");
     }
 
-    // Obtener la lista de pacientes
-    @GetMapping("/lista")
-    public ResponseEntity<List<PatientDTO>> findAll() {
-        return ResponseEntity.ok(service.findAll());
+    @GetMapping
+    public ResponseEntity<List<CourseResponseDTO>> findAll() {
+        return ResponseEntity.ok(courseService.findAll());
     }
 
-    // Eliminar un paciente por ID
-    @DeleteMapping("/eliminar/{id}")
-    public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
-        boolean isDeleted = service.delete(id);
-        if (isDeleted) {
-            return ResponseEntity.noContent().build();  // Respuesta sin contenido
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Paciente no encontrado con el ID: " + id));  // Error en caso de no encontrar al paciente
+    @GetMapping("/{name}")
+    public ResponseEntity<List<CourseResponseDTO>> findByName(@PathVariable String name) {
+        return ResponseEntity.ok(courseService.findByName(name));
     }
 
-    // Buscar paciente por ID
-    @GetMapping("/buscar/{id}")
-    public ResponseEntity<Map<String, Object>> findById(@PathVariable Long id) {
-        PatientDTO patient = service.findById(id);
-        if (patient != null) {
-            return ResponseEntity.ok(Map.of("patient", patient));  // Respuesta con el paciente encontrado
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Paciente no encontrado con el ID: " + id));  // Error si no se encuentra el paciente
+    @PutMapping("/{id}")
+    public ResponseEntity<CourseResponseDTO> update(@PathVariable Long id,
+                                                    @Valid @RequestBody CourseRequestDTO request) {
+        return ResponseEntity.ok(courseService.update(id, request));
     }
 
-    // Editar un paciente por ID
-    @PutMapping("/editar/{id}")
-    public ResponseEntity<Map<String, Object>> edit(@PathVariable Long id,
-                                                    @RequestParam("name") String name,
-                                                    @RequestParam("surname") String surname,
-                                                    @RequestParam("age") int age) {
-        PatientDTO updatedPatient = service.edit(id, name, surname, age);
-        if (updatedPatient != null) {
-            return ResponseEntity.ok(Map.of("patient", updatedPatient));  // Respuesta con el paciente actualizado
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "No se pudo actualizar. Paciente no encontrado con el ID: " + id));  // Error si no se encuentra el paciente para editar
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> delete(@PathVariable Long id) {
+        courseService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
 ```
+### Explicación:
+- **`@PostMapping`** → Devuelve `201 Created` con un mensaje de éxito.
+- **`@GetMapping`** → Devuelve `200 OK` con la lista de cursos.
+- **`@GetMapping("/{name}")`** → Devuelve `200 OK` con los cursos filtrados por nombre.
+- **`@PutMapping("/{id}")`** → Devuelve `200 OK` con el curso actualizado.
+- **`@DeleteMapping("/{id}")`** → Devuelve `204 No Content` tras eliminar el curso.
+
+En `delete()`, el método `noContent().build()` no devuelve un cuerpo en la respuesta, lo cual es una buena práctica para operaciones de eliminación.
 # Starter Validation
-Spring Boot proporciona una forma sencilla de validar datos en objetos mediante la dependencia **Spring Boot Starter Validation**, que se basa en **Jakarta Bean Validation**.
+Spring Boot proporciona una forma sencilla de validar datos mediante la dependencia **Spring Boot Starter Validation**, que se basa en **Jakarta Bean Validation**.
+
+Para incluirla en tu proyecto, agrega la siguiente dependencia en `pom.xml`:
 ```xml
 <dependency>  
     <groupId>org.springframework.boot</groupId>  
     <artifactId>spring-boot-starter-validation</artifactId>  
 </dependency>
 ```
-## Uso de las anotaciones de validación
-Para validar un objeto en un controlador de Spring Boot, simplemente se agrega la anotación `@Valid` o `@Validated` en el parámetro del método del controlador.
+Aunque las validaciones pueden aplicarse directamente en las entidades, lo más recomendable es utilizarlas en los **DTOs de solicitud (_request DTOs_)**, ya que estos son los encargados de recibir los datos antes de construir el objeto de la entidad.
 
-Para validar un objeto recibido en una solicitud, basta con utilizar la anotación `@Valid` antes del parámetro en el controlador. Esto activa automáticamente la validación de los campos según las restricciones definidas en la clase del objeto.
-```java
-@RestController
-@RequestMapping("/users")
-public class UserController {
+A continuación, veamos algunas de las anotaciones más comunes para validar datos en Spring Boot.
+## **Validaciones según el tipo de dato**
+### **1. Validaciones de Texto**
 
-    @PostMapping
-    public ResponseEntity<String> createUser(@Valid @RequestBody UserDto userDto) {
-        return ResponseEntity.ok("Usuario creado exitosamente");
-    }
-}
-```
-Del mismo modo, en la clase del objeto que queremos validar, utilizamos diversas anotaciones para definir las reglas de validación según nuestras necesidades. A continuación, se muestran algunas de las más comunes, como `@NotBlank`, `@Email`, `@Min`, `@Max` y `@Size`, las cuales permiten establecer restricciones específicas sobre los valores de los atributos.
+|Anotación|Descripción|
+|---|---|
+|`@NotNull`|El campo no puede ser `null`.|
+|`@NotEmpty`|El campo no puede ser `null` ni vacío.|
+|`@NotBlank`|Similar a `@NotEmpty`, pero también ignora espacios en blanco.|
+|`@Size(min, max)`|Define un tamaño mínimo y/o máximo para una cadena o colección.|
+|`@Pattern(regexp)`|Valida el campo con una expresión regular.|
+|`@Email`|Valida que el campo tenga formato de email válido.|
+### **2. Validaciones Numéricas**
+
+|Anotación|Descripción|
+|---|---|
+|`@Min(valor)`|El valor mínimo permitido para un número.|
+|`@Max(valor)`|El valor máximo permitido para un número.|
+|`@Positive`|El número debe ser positivo.|
+|`@PositiveOrZero`|El número debe ser positivo o cero.|
+|`@Negative`|El número debe ser negativo.|
+|`@NegativeOrZero`|El número debe ser negativo o cero.|
+|`@Digits(integer, fraction)`|Define la cantidad máxima de dígitos enteros y decimales.|
+### **3. Validaciones de Fechas**
+
+|Anotación|Descripción|
+|---|---|
+|`@Past`|La fecha debe estar en el pasado.|
+|`@Future`|La fecha debe estar en el futuro.|
+|`@PastOrPresent`|La fecha debe estar en el pasado o presente.|
+|`@FutureOrPresent`|La fecha debe estar en el futuro o presente.|
+### **4. Validaciones Booleanas**
+
+| Anotación      | Descripción                |
+| -------------- | -------------------------- |
+| `@AssertTrue`  | El valor debe ser `true`.  |
+| `@AssertFalse` | El valor debe ser `false`. |
+## **Ejemplos de validación en DTOs**
+
+### **Validación de un usuario**
 ```java
-public class UserDto {
+public class UserRequestDTO {
     
     @NotBlank(message = "El nombre no puede estar vacío")
     private String name;
@@ -1193,37 +1348,42 @@ public class UserDto {
     
     @Size(min = 8, max = 20, message = "La contraseña debe tener entre 8 y 20 caracteres")
     private String password;
-    
-    // Getters y Setters
 }
 ```
-A continuación, se muestra una tabla con los distintos tipos de anotaciones disponibles para la validación de datos.
+### **Validación de un curso con fecha**
+```java
+public class CourseRequestDTO {
 
-| Anotación                    | Descripción                                                    |
-| ---------------------------- | -------------------------------------------------------------- |
-| `@NotNull`                   | El campo no puede ser nulo                                     |
-| `@NotEmpty`                  | El campo no puede ser nulo ni vacío                            |
-| `@NotBlank`                  | Similar a `@NotEmpty`, pero también ignora espacios en blanco  |
-| `@Size(min, max)`            | Define un tamaño mínimo y/o máximo para una cadena o colección |
-| `@Min(valor)`                | El valor mínimo permitido para un número                       |
-| `@Max(valor)`                | El valor máximo permitido para un número                       |
-| `@Email`                     | Valida que el campo tenga formato de email válido              |
-| `@Pattern(regexp)`           | Valida el campo con una expresión regular                      |
-| `@Past`                      | El valor debe ser una fecha en el pasado                       |
-| `@Future`                    | El valor debe ser una fecha en el futuro                       |
-| `@PastOrPresent`             | La fecha debe ser en el pasado o presente                      |
-| `@FutureOrPresent`           | La fecha debe ser en el futuro o presente                      |
-| `@Positive`                  | El número debe ser positivo                                    |
-| `@PositiveOrZero`            | El número debe ser positivo o cero                             |
-| `@Negative`                  | El número debe ser negativo                                    |
-| `@NegativeOrZero`            | El número debe ser negativo o cero                             |
-| `@Digits(integer, fraction)` | Define la cantidad máxima de dígitos enteros y decimales       |
-| `@AssertTrue`                | El valor debe ser `true`                                       |
-| `@AssertFalse`               | El valor debe ser `false`                                      |
+    @NotBlank(message = "El nombre del curso no puede estar vacío")
+    private String name;
+
+    @NotBlank(message = "El tipo de curso no puede estar vacío")
+    private String type;
+
+    @NotNull(message = "La fecha de finalización no puede estar vacía")
+    @FutureOrPresent(message = "La fecha de finalización debe estar en el futuro o en el presente")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate endDate;
+}
+```
+## **Validación en un controlador**
+Para validar un objeto en un controlador de Spring Boot, basta con agregar la anotación `@Valid` o `@Validated` en el parámetro del método.
+```java
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    @PostMapping
+    public ResponseEntity<String> createUser(@Valid @RequestBody UserDto userDto) {
+        return ResponseEntity.ok("Usuario creado exitosamente");
+    }
+}
+```
+Con esta configuración, si un dato no cumple con las validaciones, Spring Boot devolverá automáticamente un error con un mensaje detallado.
 # Excepciones
-En Spring Boot, gestionar correctamente las excepciones es clave para ofrecer respuestas adecuadas a los errores que puedan surgir en la aplicación. Para ello, es recomendable utilizar excepciones personalizadas junto con un manejador global de excepciones. Veamos esto en detalle: lo primero es contar con un paquete en nuestro proyecto donde se almacenen todas las excepciones.
+En Spring Boot, manejar correctamente las excepciones es fundamental para proporcionar respuestas adecuadas a los errores que puedan ocurrir en la aplicación. La mejor práctica es utilizar **excepciones personalizadas** junto con un **manejador global de excepciones** para centralizar la lógica de gestión de errores.
 ## GlobalExceptionHandler
-Un manejador global de excepciones (`GlobalExceptionHandler`) permite capturar y gestionar las excepciones de manera centralizada. Se implementa usando `@RestControllerAdvice`.
+Un **GlobalExceptionHandler** permite capturar y gestionar excepciones de manera centralizada, evitando la necesidad de manejar errores en cada controlador individualmente. Se implementa mediante la anotación `@RestControllerAdvice`.
 
 | Anotación                            | Descripción                                                                                                   |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
@@ -1233,14 +1393,17 @@ Un manejador global de excepciones (`GlobalExceptionHandler`) permite capturar y
 | `@Valid`                             | Se usa para validar automáticamente los objetos de entrada en controladores antes de que lleguen al servicio. |
 | `@Validated`                         | Similar a `@Valid`, pero permite validar clases enteras y métodos dentro de un servicio.                      |
 
-Desde el manejador global de excepciones, podemos gestionar los errores generados por las validaciones mencionadas en el apartado anterior. Además, también podemos manejar excepciones personalizadas, como `UserAlreadyExistsException`, las cuales exploraremos más adelante.
+Desde este manejador global, podemos gestionar tanto **errores de validación** como **excepciones personalizadas**. Veamos su implementación:
 ```java
 @RestControllerAdvice  
 public class GlobalExceptionHandler {  
 
+    /**
+     * Manejo de errores de validación (@Valid)
+     * Captura los errores de validación y los devuelve en un formato estructurado.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)  
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {  
-            // Recorremos los errores de validación y los guardamos en un mapa  
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()  
                 .collect(Collectors.toMap(  
                         FieldError::getField,  
@@ -1252,6 +1415,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);  
     }  
 
+    /**
+     * Manejo de excepción personalizada cuando un usuario ya existe en la base de datos.
+     */
     @ExceptionHandler(UserAlreadyExistsException.class)  
     public ResponseEntity<ErrorResponseDTO> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {  
         return ResponseEntity.status(HttpStatus.CONFLICT).body(  
@@ -1262,14 +1428,62 @@ public class GlobalExceptionHandler {
         );  
     }  
 
+    /**
+     * Manejo de errores de autenticación.
+     */
     @ExceptionHandler(AuthenticationException.class)  
     public ResponseEntity<String> handleAuthenticationException(AuthenticationException ex) {  
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());  
     }  
 }
 ```
+### Manejo de errores de validación y formato incorrecto
+Además de manejar errores de validación de formularios (`@Valid`), también podemos gestionar **errores de formato incorrecto**, como una fecha mal ingresada:
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    /**
+     * Manejo de errores de validación de campos en formularios.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        error -> Optional.ofNullable(error.getDefaultMessage())
+                                .orElse("Error en la validación"),
+                        (msg1, msg2) -> msg1
+                ));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
+
+    /**
+     * Manejo de formato de fecha incorrecto (Ejemplo: "2024-15-30" en lugar de "2024-12-30").
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> handleInvalidFormat(HttpMessageNotReadableException ex) {
+        if (ex.getCause() instanceof InvalidFormatException cause && cause.getTargetType() == LocalDate.class) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Formato de fecha incorrecto. Usa 'yyyy-MM-dd'.");
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error en la solicitud: formato inválido.");
+    }
+
+    /**
+     * Manejo de error cuando un recurso solicitado no existe en la base de datos.
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<String> handleResourceNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+}
+```
 ## Excepciones personalizadas
-Como hemos visto, podemos gestionar excepciones personalizadas para controlar mejor los errores en nuestra aplicación. Un caso común es cuando queremos verificar si un usuario ya existe en la base de datos antes de registrarlo. Para ello, creamos una clase de excepción que extienda `RuntimeException`:
+Crear **excepciones personalizadas** nos permite representar errores específicos en la aplicación y manejar cada caso de manera más clara.
+
+Por ejemplo, si queremos lanzar un error cuando un usuario ya existe en la base de datos, podemos definir la siguiente excepción:
 ```java
 public class UserAlreadyExistsException extends RuntimeException {  
     public UserAlreadyExistsException(String message) {  
@@ -1277,47 +1491,7 @@ public class UserAlreadyExistsException extends RuntimeException {
     }  
 }
 ```
-Desde nuestro `GlobalExceptionHandler`, podemos gestionar esta excepción y definir la respuesta adecuada, como establecer un código de estado HTTP específico. En este caso, utilizamos `HttpStatus.CONFLICT (409)`, que indica que la solicitud no pudo completarse debido a un conflicto con el estado actual del recurso:
-```java
-@ExceptionHandler(UserAlreadyExistsException.class)  
-public ResponseEntity<String> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {  
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());  
-}
-```
-Por último, debemos definir en qué momento lanzaremos esta excepción personalizada. En nuestro caso, la comprobación de si un usuario ya existe se realiza en el servicio (service). Dentro del método correspondiente, verificamos si el usuario ya está registrado en la base de datos. Si el usuario existe, es en este punto donde lanzamos nuestra excepción personalizada:
-```java
-@Override  
-public void register(RegisterRequestDTO request) {  
-    Optional<User> userOptional = userRepository.findByUsername(request.getUsername());  
-        // Si el usuario ya existe, lanza una excepción  
-    if (userOptional.isPresent()) {  
-        throw new UserAlreadyExistsException("El usuario ya existe");  
-    } else {  
-            // Si el usuario no existe, lo guarda en la base de datos  
-        userRepository.save(User.builder()  
-                .username(request.getUsername())  
-                .name(request.getName())  
-                .password(passwordEncoder.encode(request.getPassword()))  
-                .role(Role.CUSTOMER)  
-                .build()  
-        );  
-    }  
-}
-```
-De esta manera, cuando detectamos que el usuario ya existe, se lanza nuestra excepción `UserAlreadyExistsException`, la cual será capturada y gestionada por el `GlobalExceptionHandler`, como hemos visto anteriormente. Esto nos permite centralizar el control de errores y proporcionar respuestas claras y adecuadas al cliente. 
-## ErrorResponse
-Una buena práctica es gestionar la respuesta de las excepciones utilizando un DTO (Data Transfer Object). Esto nos permite tener un control total sobre la información que se va a mostrar al usuario, personalizando tanto los mensajes como los códigos de estado. A continuación, mostramos un ejemplo de cómo hacerlo:
-
-Primero, creamos un DTO que contendrá la información relevante para la respuesta de la excepción:
-```java
-@Getter  
-@Builder  
-public class ErrorResponseDTO {  
-    private String message;  
-    private int status;  
-}
-```
-Luego, modificamos el `GlobalExceptionHandler` para que devuelva este DTO en lugar de un mensaje plano, lo cual es mucho más estructurado y adecuado:
+Luego, en nuestro `GlobalExceptionHandler`, podemos manejar esta excepción y definir una respuesta estructurada:
 ```java
 @ExceptionHandler(UserAlreadyExistsException.class)  
 public ResponseEntity<ErrorResponseDTO> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {  
@@ -1329,7 +1503,54 @@ public ResponseEntity<ErrorResponseDTO> handleUserAlreadyExistsException(UserAlr
     );  
 }
 ```
-De este modo, al lanzar la excepción `UserAlreadyExistsException`, la respuesta devuelta tendrá el siguiente formato:
+### Lanzando excepciones en el servicio
+Debemos definir **en qué momento se lanza esta excepción personalizada**. Por ejemplo, en el método de registro de usuario:
+```java
+@Override  
+public void register(RegisterRequestDTO request) {  
+    Optional<User> userOptional = userRepository.findByUsername(request.getUsername());  
+
+    // Si el usuario ya existe, lanzamos la excepción personalizada
+    if (userOptional.isPresent()) {  
+        throw new UserAlreadyExistsException("El usuario ya existe");  
+    } else {  
+        // Si el usuario no existe, lo guardamos en la base de datos  
+        userRepository.save(User.builder()  
+                .username(request.getUsername())  
+                .name(request.getName())  
+                .password(passwordEncoder.encode(request.getPassword()))  
+                .role(Role.CUSTOMER)  
+                .build()  
+        );  
+    }  
+}
+```
+Cuando se detecta que el usuario ya existe, la excepción `UserAlreadyExistsException` es lanzada y capturada automáticamente por el `GlobalExceptionHandler`, enviando una respuesta con el código de estado `409 Conflict`.
+## DTO para respuestas
+Es recomendable estructurar las respuestas de error mediante un **DTO (Data Transfer Object)** para proporcionar respuestas más detalladas y organizadas.
+
+Definimos un DTO que contendrá la información de los errores:
+```java
+@Getter  
+@Builder  
+public class ErrorResponseDTO {  
+    private String message;  
+    private int status;  
+}
+```
+Luego, modificamos el `GlobalExceptionHandler` para usar este DTO en las respuestas:
+```java
+@ExceptionHandler(UserAlreadyExistsException.class)  
+public ResponseEntity<ErrorResponseDTO> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {  
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(  
+            ErrorResponseDTO.builder()  
+                    .message(ex.getMessage())  
+                    .status(HttpStatus.CONFLICT.value())  
+                    .build()  
+    );  
+}
+```
+Así, cuando un usuario intenta registrarse y ya existe, la respuesta será:
 ```json
 {
     "message": "El usuario ya existe",
@@ -1343,6 +1564,10 @@ Para integrar Spring Security en un proyecto Spring Boot, es necesario añadir l
 
 ```xml
 <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+<dependency>
     <groupId>org.springframework.security</groupId>
     <artifactId>spring-security-test</artifactId>
     <scope>test</scope>
@@ -1351,18 +1576,10 @@ Para integrar Spring Security en un proyecto Spring Boot, es necesario añadir l
 
 Al agregar esta dependencia, Spring Boot automáticamente protege todos los endpoints de la aplicación, requiriendo autenticación para acceder a ellos.
 ## Configuración de Seguridad
-A continuación, se muestra cómo configurar Spring Security para permitir el acceso sin autenticación a ciertos endpoints y requerir autenticación para los demás. Además, se habilitan dos formas de autenticación: mediante formulario y autenticación básica (Basic Auth).
+Spring Security permite configurar distintos niveles de acceso a los endpoints de la aplicación. En esta configuración, definimos qué rutas pueden ser accesibles sin autenticación y cuáles requieren que el usuario esté autenticado. Además, habilitamos dos métodos de autenticación: **formulario de inicio de sesión** y **autenticación básica (Basic Auth)**.
 ### Implementación de `SecurityConfig`
+A continuación, se muestra la configuración de seguridad en `SecurityConfig`:
 ```java
-package com.example.Ejercicio1.config;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -1370,23 +1587,40 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .authorizeHttpRequests(authRequest -> authRequest
-                        .requestMatchers("/personas/traer", "/personas/traer/**").permitAll() // Acceso sin autenticación
-                        .anyRequest().authenticated() // Cualquier otro endpoint requiere autenticación
-                )
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.GET, "/cursos").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/temas/{id}").permitAll();
+
+                    auth.anyRequest().authenticated();
+                })
                 .formLogin(Customizer.withDefaults()) // Autenticación por formulario
                 .httpBasic(Customizer.withDefaults()) // Autenticación básica
                 .build();
     }
 }
 ```
-
-3. `@Configuration` y `@EnableWebSecurity`: Indican que esta clase contiene la configuración de seguridad de la aplicación.    
-4. `**SecurityFilterChain**`:
-    - `requestMatchers("/personas/traer", "/personas/traer/**").permitAll()` permite el acceso sin autenticación a estos endpoints.
-    - `anyRequest().authenticated()` requiere autenticación para cualquier otro endpoint.
-    - `formLogin(Customizer.withDefaults())` habilita el login mediante formulario.
-    - `httpBasic(Customizer.withDefaults())` habilita la autenticación básica mediante encabezados HTTP.
+### Explicación de la Configuración:
+1. **Anotaciones Principales**:
+    - `@Configuration`: Indica que esta clase contiene la configuración de Spring Security.
+    - `@EnableWebSecurity`: Habilita la seguridad en la aplicación.
+2. **Método `securityFilterChain(HttpSecurity http)`**:
+    - **`csrf(AbstractHttpConfigurer::disable)`**:
+        - Deshabilita la protección contra ataques CSRF (Cross-Site Request Forgery).
+        - Es recomendable deshabilitarlo solo si la aplicación es una API REST sin formularios de autenticación.
+    - **`authorizeHttpRequests(auth -> { ... })`**:
+        - Define las reglas de acceso a los endpoints.
+        - `requestMatchers(HttpMethod.GET, "/cursos").permitAll();`  
+            → Permite el acceso sin autenticación a la lista de cursos.
+        - `requestMatchers(HttpMethod.GET, "/temas/{id}").permitAll();`  
+            → Permite el acceso sin autenticación a temas específicos.
+        - `anyRequest().authenticated();`  
+            → Requiere autenticación para cualquier otro endpoint no especificado.
+    - **Autenticación**:
+        - `.formLogin(Customizer.withDefaults())`:  
+            → Habilita el formulario de inicio de sesión por defecto de Spring Security.
+        - `.httpBasic(Customizer.withDefaults())`:  
+            → Habilita autenticación básica con usuario y contraseña en los encabezados HTTP.
 ### Usuario y Contraseña Predeterminados
 Al agregar Spring Security sin ninguna configuración adicional de usuarios, Spring Boot genera un usuario por defecto con el nombre `user` y una contraseña aleatoria que se muestra en la consola al iniciar la aplicación:
 ```
@@ -1484,8 +1718,8 @@ public class User implements UserDetails {
 }
 ```
 
-5. **`getAuthorities()`**: Este método es crucial, ya que proporciona las autoridades (roles y permisos) del usuario. El método obtiene los permisos asociados al rol del usuario desde un `enum` llamado `Role` y los convierte en una lista de objetos `GrantedAuthority`. Además, se añade el rol como una autoridad adicional, prepended with `"ROLE_"` para que Spring Security lo reconozca como un rol válido. Este enfoque permite gestionar tanto los roles como los permisos asociados a cada usuario.
-6. **Métodos de `UserDetails`**:
+3. **`getAuthorities()`**: Este método es crucial, ya que proporciona las autoridades (roles y permisos) del usuario. El método obtiene los permisos asociados al rol del usuario desde un `enum` llamado `Role` y los convierte en una lista de objetos `GrantedAuthority`. Además, se añade el rol como una autoridad adicional, prepended with `"ROLE_"` para que Spring Security lo reconozca como un rol válido. Este enfoque permite gestionar tanto los roles como los permisos asociados a cada usuario.
+4. **Métodos de `UserDetails`**:
     - **`isAccountNonExpired()`**, **`isAccountNonLocked()`**, **`isCredentialsNonExpired()`** y **`isEnabled()`** son métodos que permiten a Spring Security comprobar el estado de la cuenta del usuario, asegurando que el usuario esté habilitado, que las credenciales no hayan expirado, y que la cuenta no esté bloqueada. En nuestro caso, estos métodos siempre devuelven `true` para simplificar la gestión de usuarios, pero en un entorno de producción se podrían personalizar según los requerimientos de seguridad.
 
 Implementar `UserDetails` es fundamental porque Spring Security espera esta interfaz para manejar la autenticación y autorización de manera eficiente. Al hacerlo, Spring Security puede gestionar automáticamente los procesos de autenticación (validación de credenciales) y autorización (gestión de roles y permisos) basándose en nuestra implementación personalizada.
@@ -1681,16 +1915,16 @@ public class JwtService implements IJwtService {
 }
 ```
 #### Explicación del código
-7. **Generación del token (`generateToken`)**
+5. **Generación del token (`generateToken`)**
     - Se asigna al **sujeto del token** (`subject`) el nombre de usuario del usuario autenticado.
     - Se define la **fecha de emisión** (`issuedAt`) y la **fecha de expiración** (`expiration`), usando el valor de `security.jwt.expiration-days` configurado en `application.properties`.
     - Se firma el token con un algoritmo de seguridad **HMAC-SHA256 (HS256)** y una clave secreta.
-8. **Generación de la clave secreta (`generateKey`)**
+6. **Generación de la clave secreta (`generateKey`)**
     - Se decodifica la clave secreta almacenada en las propiedades de la aplicación.
     - Se utiliza `Keys.hmacShaKeyFor()` para generar una clave válida para firmar el token.
-9. **Extracción del nombre de usuario (`extractUsername`)**
+7. **Extracción del nombre de usuario (`extractUsername`)**
     - Se obtiene la información almacenada en el token y se extrae el **sujeto (subject)**, que representa el **nombre de usuario**.
-10. **Validación del token (`extractAllClaims`)**
+8. **Validación del token (`extractAllClaims`)**
     - Se utiliza el mismo método de firma para verificar que el token no ha sido alterado.
     - Se extraen todas las reclamaciones (claims), lo que permite acceder a información adicional almacenada en el token.
 #### Configuración en `application.properties`
@@ -1787,7 +2021,7 @@ public class SecurityBeansInjector {
 	 - Si el usuario no existe, lanza una excepción de autenticación.
  2. `passwordEncoder()`
 	- Crea una instancia de `BCryptPasswordEncoder` para codificar y comparar contraseñas de manera segura.
-11. `authenticationProvider()`
+9. `authenticationProvider()`
 	- Configura `DaoAuthenticationProvider` para utilizar nuestro `UserDetailsService` y `PasswordEncoder`.
  1. `authenticationManager()`
 	- Proporciona una instancia de `AuthenticationManager` para gestionar la autenticación de usuarios.
@@ -1893,18 +2127,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 }
 ```
 #### Explicación del código
-12. **Interceptar cada solicitud**
+10. **Interceptar cada solicitud**
     - Extendemos `OncePerRequestFilter`, lo que garantiza que nuestro filtro se ejecute una sola vez por solicitud.
-13. **Extraer y validar el token JWT**
+11. **Extraer y validar el token JWT**
     - Recuperamos el encabezado `"Authorization"`.
     - Verificamos que comience con `"Bearer "` para asegurarnos de que contiene un JWT.
     - Si no hay token, la solicitud continúa sin autenticación.
-14. **Autenticación del usuario**
+12. **Autenticación del usuario**
     - Extraemos el nombre de usuario del token JWT usando `jwtService.extractUsername(jwt)`.
     - Si el usuario ya está autenticado o no se encuentra en la base de datos, se devuelve un error.
     - Recuperamos el usuario desde la base de datos y creamos un `UsernamePasswordAuthenticationToken`.
     - Establecemos este token en el `SecurityContextHolder`, lo que significa que el usuario ahora está autenticado en la aplicación.
-15. **Manejo de errores**
+13. **Manejo de errores**
     - Si ocurre algún error durante la validación del token, se responde con un código `401 Unauthorized`.
 ### Configure el filtro solicitante de la aplicación
 Nuestra autenticación personalizada está lista, pero ahora debemos definir los criterios que debe cumplir una solicitud entrante antes de ser reenviada al middleware de la aplicación. Los criterios son los siguientes:
@@ -1995,13 +2229,13 @@ public class SecurityConfig {
 }
 ```
 #### Explicación de la Configuración
-16. **Deshabilitación de CSRF**
+14. **Deshabilitación de CSRF**
     - Se usa `csrf(AbstractHttpConfigurer::disable)` para desactivar la protección CSRF, ya que JWT maneja la autenticación.
-17. **Política de Sesión sin Estado**
+15. **Política de Sesión sin Estado**
     - Se configura `sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)` para evitar el uso de sesiones en la autenticación.
-18. **Autenticación mediante JWT**
+16. **Autenticación mediante JWT**
     - Se registra un `AuthenticationProvider` y se agrega el filtro `JwtAuthenticationFilter` antes del filtro estándar de usuario y contraseña.
-19. **Configuración de Rutas**
+17. **Configuración de Rutas**
     - Se permite acceso sin autenticación a rutas de autenticación (`/auth/login`, `/auth/register`) y documentación (`/doc/**`, `/swagger-ui/**`).
     - Se restringe el acceso a los productos, requiriendo permisos específicos.
     - Cualquier otra solicitud se bloquea con `denyAll()`.
@@ -2118,7 +2352,106 @@ Lo primero que necesitamos es agregar la dependencia en el archivo `pom.xml` de 
     <version>2.3.0</version>
 </dependency>
 ```
-Podemos modificar la ruta por defecto y configurar algunas opciones adicionales en el archivo `application.properties`, ubicado en `src/main/resources/`. A continuación, te mostramos algunos ejemplos de configuración: 
+>**Nota Importante**  
+   Si estamos utilizando Swagger junto con un `GlobalExceptionHandler`, es posible que experimentemos conflictos, ya que Swagger puede no funcionar correctamente con esta integración. Para solucionar este problema, podemos usar la anotación `@Hidden` en nuestra clase `GlobalExceptionHandler`. Esto permitirá que Swagger funcione correctamente.  
+```java
+@Hidden  
+@RestControllerAdvice  
+public class GlobalExceptionHandler {
+}
+```
+## Anotaciones más comunes
+La siguiente tabla resume las anotaciones más utilizadas con `springdoc`:
+
+| **Anotación**    | **Descripción**                                                                          | **Ejemplo de Uso**                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@Tag`           | Define una categoría para agrupar endpoints en la documentación.                         | `@Tag(name = "Usuarios", description = "Operaciones relacionadas con usuarios")`                                                                                      |
+| `@Operation`     | Describe un endpoint específico, incluyendo su resumen y detalles.                       | `@Operation(summary = "Obtiene un usuario por ID", description = "Devuelve la información de un usuario específico.")`                                                |
+| `@ApiResponse`   | Define una posible respuesta HTTP con su código y descripción.                           | `@ApiResponse(responseCode = "200", description = "Usuario encontrado")`                                                                                              |
+| `@ApiResponses`  | Agrupa múltiples respuestas posibles de un endpoint.                                     | `@ApiResponses({ @ApiResponse(responseCode = "200", description = "Operación exitosa"), @ApiResponse(responseCode = "404", description = "Usuario no encontrado") })` |
+| `@Parameter`     | Documenta un parámetro de la API, como una variable de ruta o consulta.                  | `@Parameter(name = "id", description = "ID del usuario", required = true) Long id`                                                                                    |
+| `@RequestBody`   | Indica que el cuerpo de la solicitud debe incluir un objeto.                             | `@RequestBody(description = "Datos del usuario a crear") UsuarioDTO usuario`                                                                                          |
+| `@Schema`        | Especifica la estructura y descripción de una clase usada en la API.                     | `@Schema(description = "Entidad Usuario", example = "{\"nombre\": \"Juan\", \"edad\": 25}")`                                                                          |
+| `@Hidden`        | Oculta un endpoint o un campo de la documentación generada.                              | `@Hidden public String password;`                                                                                                                                     |
+| `@Content`       | Especifica el tipo de contenido esperado en la respuesta o en el cuerpo de la solicitud. | `@Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioDTO.class))`                                                                       |
+| `@ExampleObject` | Define ejemplos de valores para los parámetros o respuestas de la API.                   | `@ExampleObject(name = "EjemploUsuario", value = "{\"nombre\": \"Juan\", \"edad\": 25}")`                                                                             |
+## Ejemplo de implementación en un `Controller`
+A continuación, se muestra un `Controller` documentado con OpenAPI:
+```java
+@RestController
+@RequestMapping("/cursos")
+@RequiredArgsConstructor
+@Tag(name = "Cursos")
+public class CourseController {
+
+    private final ICourseService courseService;
+
+    @Operation(
+            summary = "Registrar un nuevo curso",
+            description = "Guarda un nuevo curso en el sistema. Se requiere autenticación."
+    )
+    @ApiResponse(responseCode = "201", description = "Curso registrado correctamente")
+    @ApiResponse(responseCode = "400", description = "Error en la validación de los datos")
+    @ApiResponse(responseCode = "401", description = "No autenticado")
+    @PostMapping
+    public ResponseEntity<String> save(@RequestBody @Valid CourseRequestDTO request) {
+        courseService.save(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Curso registrado correctamente");
+    }
+
+    @Operation(
+            summary = "Obtener todos los cursos",
+            description = "Recupera una lista de todos los cursos disponibles en el sistema."
+    )
+    @ApiResponse(responseCode = "200", description = "Lista de cursos recuperada correctamente")
+    @GetMapping
+    public ResponseEntity<List<CourseResponseDTO>> findAll() {
+        return ResponseEntity.ok(courseService.findAll());
+    }
+
+    @Operation(
+            summary = "Buscar cursos por nombre",
+            description = "Recupera una lista de cursos cuyo nombre contenga la palabra clave proporcionada."
+    )
+    @ApiResponse(responseCode = "200", description = "Lista de cursos recuperada correctamente")
+    @ApiResponse(responseCode = "401", description = "No autenticado. Se requiere autenticación")
+    @ApiResponse(responseCode = "404", description = "El parámetro de búsqueda no puede estar vacío")
+    @GetMapping("/{name}")
+    public ResponseEntity<List<CourseResponseDTO>> findByName(@PathVariable String name) {
+        return ResponseEntity.ok(courseService.findByName(name));
+    }
+
+    @Operation(
+            summary = "Actualizar un curso",
+            description = "Actualiza la información de un curso específico utilizando su ID y los datos proporcionados."
+    )
+    @ApiResponse(responseCode = "200", description = "Curso actualizado correctamente")
+    @ApiResponse(responseCode = "400", description = "Error de validación en los datos proporcionados")
+    @ApiResponse(responseCode = "401", description = "No autenticado. Se requiere autenticación")
+    @ApiResponse(responseCode = "404", description = "Curso no encontrado o ID no proporcionado")
+    @PutMapping("/{id}")
+    public ResponseEntity<CourseResponseDTO> update(@PathVariable Long id,
+                                                    @Valid @RequestBody CourseRequestDTO request) {
+        return ResponseEntity.ok(courseService.update(id, request));
+    }
+
+    @Operation(
+            summary = "Eliminar un curso",
+            description = "Elimina un curso especificado por su ID."
+    )
+    @ApiResponse(responseCode = "204", description = "Curso eliminado correctamente")
+    @ApiResponse(responseCode = "401", description = "No autenticado. Se requiere autenticación")
+    @ApiResponse(responseCode = "404", description = "Curso no encontrado o ID no proporcionado")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> delete(@PathVariable Long id) {
+        courseService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+```
+## Configuración en `application.properties`
+Podemos modificar la configuración por defecto de Swagger en el archivo `application.properties`:
 ```properties
 # habilitar o no api-docs y swagger-ui
 springdoc.api-docs.enabled = true
@@ -2127,7 +2460,8 @@ springdoc.swagger-ui.enabled = true
 # url o ruta de swagger-ui
 springdoc.swagger-ui.path=/doc/swagger-ui.html
 ```
-La página generada por Swagger UI no es estática, lo que nos permite personalizarla según nuestras necesidades o preferencias. Para hacerlo, podemos definir un **bean** en la clase principal donde se encuentra el método `main`, de la siguiente manera:
+## Personalización de la documentación
+Podemos personalizar la información de nuestra API mediante un **bean** en la clase principal del proyecto:
 ```java
 package com.pruebaspringdoc.ejemploDoc;
 
@@ -2151,38 +2485,6 @@ public class EjemploDocApplication {
                 .version("0.0.1")
                 .description("Un ejemplo de cómo documentar una API"));
     }
-}
-```
-Ahora veremos cómo usar las diferentes anotaciones que nos ofrece Swagger para documentar, como es el caso de `@ApiResponse`.
-
-`@ApiResponse` es una anotación que se utiliza para documentar las posibles respuestas que un endpoint puede devolver, proporcionando información sobre los códigos de estado HTTP y sus significados. Esto ayuda a los consumidores de la API a entender claramente qué esperar de cada operación.
-
-A continuación, se muestra cómo documentar un endpoint que permite editar una entidad `Persona` utilizando `@ApiResponses`:
-```java
-@ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "La operación se ejecutó correctamente"),
-        @ApiResponse(responseCode = "204", description = "No se encontró la persona que intenta editar")
-})
-@PutMapping("/edit/{id}")
-public ResponseEntity<Persona> edit(
-        @PathVariable Long id,
-        @RequestParam("nombre") String nombreEdit,
-        @RequestParam("apellido") String apellidoEdit,
-        @RequestParam("edad") int edadEdit) {
-    Persona persona = service.findById(id, nombreEdit, apellidoEdit, edadEdit);
-    if (persona == null) {
-        return ResponseEntity.noContent().build();
-    } else {
-        return ResponseEntity.ok(persona);
-    }
-}
-```
->**Nota Importante**  
-   Si estamos utilizando Swagger junto con un `GlobalExceptionHandler`, es posible que experimentemos conflictos, ya que Swagger puede no funcionar correctamente con esta integración. Para solucionar este problema, podemos usar la anotación `@Hidden` en nuestra clase `GlobalExceptionHandler`. Esto permitirá que Swagger funcione correctamente.  
-```java
-@Hidden  
-@RestControllerAdvice  
-public class GlobalExceptionHandler {
 }
 ```
 # Testing
@@ -2217,9 +2519,9 @@ El testing automatizado abarca diferentes tipos de pruebas, cada una enfocada en
 ## Pruebas unitarias
 Las pruebas unitarias validan el comportamiento esperado de unidades de código de manera aislada, garantizando su correcto funcionamiento.
 ### Proceso de creación de pruebas unitarias
-20. **Definir casos de prueba**: Diseñar escenarios que cubran diferentes situaciones.
-21. **Desarrollar las pruebas**: Escribir scripts que validen el comportamiento esperado.
-22. **Ejecutar y analizar resultados**: Identificar fallos y corregir errores.
+18. **Definir casos de prueba**: Diseñar escenarios que cubran diferentes situaciones.
+19. **Desarrollar las pruebas**: Escribir scripts que validen el comportamiento esperado.
+20. **Ejecutar y analizar resultados**: Identificar fallos y corregir errores.
 ## Implementación de JUnit
 JUnit es un framework de pruebas unitarias para Java que permite la creación, ejecución y verificación de tests automatizados. Es una herramienta fundamental en el desarrollo con Java para asegurar la calidad del código.
 ### 1. Agregar dependencias
@@ -2377,11 +2679,11 @@ public class ConexionBDTest {
 # Despliegue con Docker
 Para desplegar una aplicación Spring con Docker, seguimos una serie de pasos organizados en tres etapas principales:
 
-1. **Creación del `.jar`**  
+21. **Creación del `.jar`**  
     Un `.jar` (Java ARchive) es un archivo ejecutable que contiene toda nuestra aplicación empaquetada junto con sus dependencias. Este formato nos permite ejecutar la aplicación sin necesidad de un entorno de desarrollo adicional.
-2. **Creación del `Dockerfile`**  
+22. **Creación del `Dockerfile`**  
     El `Dockerfile` es un archivo que define las instrucciones para construir una imagen de Docker basada en nuestro `.jar`. Actúa como un intermediario entre el ejecutable de nuestra aplicación y el entorno en el que se ejecutará dentro de un contenedor.
-3. **Creación del `docker-compose.yml`**  
+23. **Creación del `docker-compose.yml`**  
     Este archivo nos permite definir y gestionar múltiples contenedores como servicios. En el caso de una aplicación Spring Boot con persistencia, lo común es incluir:
     - Un servicio basado en la imagen de nuestra aplicación.
     - Un servicio para la base de datos (por ejemplo, MySQL o PostgreSQL).
@@ -2431,15 +2733,15 @@ También es importante revisar el archivo `pom.xml`, donde podemos modificar val
 Una vez verificados estos archivos, podemos proceder a generar el `.jar`. Existen diferentes formas de hacerlo, dependiendo del entorno de desarrollo que estemos utilizando.
 #### En IntelliJ IDEA
 
-1. Dirígete a la esquina superior derecha y selecciona el icono de **Maven**.
-2. En la ventana que se abre, busca la sección **Lifecycle** y selecciona **clean** para limpiar el proyecto.
-3. Luego, selecciona **install** para compilar y empaquetar el proyecto en un archivo `.jar`.
-4. El archivo `.jar` generado se almacenará en el directorio `target` del proyecto. Asegúrate de anotar su nombre, ya que lo necesitarás más adelante.
+24. Dirígete a la esquina superior derecha y selecciona el icono de **Maven**.
+25. En la ventana que se abre, busca la sección **Lifecycle** y selecciona **clean** para limpiar el proyecto.
+26. Luego, selecciona **install** para compilar y empaquetar el proyecto en un archivo `.jar`.
+27. El archivo `.jar` generado se almacenará en el directorio `target` del proyecto. Asegúrate de anotar su nombre, ya que lo necesitarás más adelante.
 #### En NetBeans
 
-1. Haz clic derecho sobre el proyecto en el panel de **Proyectos**.
-2. Selecciona la opción **Clean and Build**.
-3. NetBeans limpiará el proyecto y generará el `.jar`, que se guardará en el directorio `target` o su equivalente según la configuración del proyecto.
+28. Haz clic derecho sobre el proyecto en el panel de **Proyectos**.
+29. Selecciona la opción **Clean and Build**.
+30. NetBeans limpiará el proyecto y generará el `.jar`, que se guardará en el directorio `target` o su equivalente según la configuración del proyecto.
 
 > **Nota importante:** 
 > En algunos casos, IntelliJ no detecta las variables de entorno, incluso si están definidas en la configuración del IDE. Si esto ocurre, podemos generar el `.jar` manualmente desde la terminal.

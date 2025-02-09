@@ -1,7 +1,10 @@
 package com.example.Ejercicio1.controller;
 
+import com.example.Ejercicio1.dto.PersonaRequestDTO;
+import com.example.Ejercicio1.dto.PersonaResponseDTO;
 import com.example.Ejercicio1.modal.Persona;
 import com.example.Ejercicio1.service.IPersonaService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,18 +12,18 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/personas")
+@RequiredArgsConstructor
 public class PersonaController {
 
-    @Autowired
-    private IPersonaService service;
+    private final IPersonaService service;
 
     @GetMapping
-    public List<Persona> findAll() {
+    public List<PersonaResponseDTO> findAll() {
         return service.findAll();
     }
 
     @PostMapping
-    public String save(@RequestBody Persona persona) {
+    public String save(@RequestBody PersonaRequestDTO persona) {
         service.save(persona);
         return "Persona añadida correctamente";
     }
@@ -32,14 +35,7 @@ public class PersonaController {
     }
 
     @PutMapping("/edit/{id}")
-    public Persona edit(@PathVariable Long id,
-                        @RequestParam ("nombre") String nombreEdit,
-                        @RequestParam ("apellido") String apellidoEdit,
-                        @RequestParam ("edad") int edadEdit) {
-        Persona persona = service.findById(id);
-        persona.setNombre(nombreEdit);
-        persona.setApellido(apellidoEdit);
-        persona.setEdad(edadEdit);
-        return persona;
+    public PersonaResponseDTO update(@PathVariable Long id, @RequestBody PersonaRequestDTO persona) {
+        return service.update(id, persona);
     }
 }
