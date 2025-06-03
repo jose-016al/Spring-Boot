@@ -38,6 +38,10 @@
 	- [Implementación de JWT](#implementación-de-jwt)
 - [OpenAPI](#openapi)
 - [Testing](#testing)
+	- [Pruebas unitarias](#pruebas-unitarias)
+	- [Pruebas de integración (JPA)](#pruebas-de-integración-jpa)
+	- [Pruebas de controladores](#pruebas-de-controladores)
+	- [Otras opciones para probar controladores](#otras-opciones-para-probar-controladores)
 - [Despliegue con Docker](#despliegue-con-docker)
 # Initializr
 Para la creación de un proyecto, utilizaremos `Initializr`, una herramienta en línea que simplifica la creación y configuración inicial de proyectos basados en Spring Boot. Esta herramienta permite a los desarrolladores iniciar rápidamente nuevos proyectos al ofrecer una interfaz web intuitiva y fácil de usar.
@@ -1718,8 +1722,8 @@ public class User implements UserDetails {
 }
 ```
 
-3. **`getAuthorities()`**: Este método es crucial, ya que proporciona las autoridades (roles y permisos) del usuario. El método obtiene los permisos asociados al rol del usuario desde un `enum` llamado `Role` y los convierte en una lista de objetos `GrantedAuthority`. Además, se añade el rol como una autoridad adicional, prepended with `"ROLE_"` para que Spring Security lo reconozca como un rol válido. Este enfoque permite gestionar tanto los roles como los permisos asociados a cada usuario.
-4. **Métodos de `UserDetails`**:
+1. **`getAuthorities()`**: Este método es crucial, ya que proporciona las autoridades (roles y permisos) del usuario. El método obtiene los permisos asociados al rol del usuario desde un `enum` llamado `Role` y los convierte en una lista de objetos `GrantedAuthority`. Además, se añade el rol como una autoridad adicional, prepended with `"ROLE_"` para que Spring Security lo reconozca como un rol válido. Este enfoque permite gestionar tanto los roles como los permisos asociados a cada usuario.
+2. **Métodos de `UserDetails`**:
     - **`isAccountNonExpired()`**, **`isAccountNonLocked()`**, **`isCredentialsNonExpired()`** y **`isEnabled()`** son métodos que permiten a Spring Security comprobar el estado de la cuenta del usuario, asegurando que el usuario esté habilitado, que las credenciales no hayan expirado, y que la cuenta no esté bloqueada. En nuestro caso, estos métodos siempre devuelven `true` para simplificar la gestión de usuarios, pero en un entorno de producción se podrían personalizar según los requerimientos de seguridad.
 
 Implementar `UserDetails` es fundamental porque Spring Security espera esta interfaz para manejar la autenticación y autorización de manera eficiente. Al hacerlo, Spring Security puede gestionar automáticamente los procesos de autenticación (validación de credenciales) y autorización (gestión de roles y permisos) basándose en nuestra implementación personalizada.
@@ -1915,16 +1919,16 @@ public class JwtService implements IJwtService {
 }
 ```
 #### Explicación del código
-5. **Generación del token (`generateToken`)**
+1. **Generación del token (`generateToken`)**
     - Se asigna al **sujeto del token** (`subject`) el nombre de usuario del usuario autenticado.
     - Se define la **fecha de emisión** (`issuedAt`) y la **fecha de expiración** (`expiration`), usando el valor de `security.jwt.expiration-days` configurado en `application.properties`.
     - Se firma el token con un algoritmo de seguridad **HMAC-SHA256 (HS256)** y una clave secreta.
-6. **Generación de la clave secreta (`generateKey`)**
+2. **Generación de la clave secreta (`generateKey`)**
     - Se decodifica la clave secreta almacenada en las propiedades de la aplicación.
     - Se utiliza `Keys.hmacShaKeyFor()` para generar una clave válida para firmar el token.
-7. **Extracción del nombre de usuario (`extractUsername`)**
+3. **Extracción del nombre de usuario (`extractUsername`)**
     - Se obtiene la información almacenada en el token y se extrae el **sujeto (subject)**, que representa el **nombre de usuario**.
-8. **Validación del token (`extractAllClaims`)**
+4. **Validación del token (`extractAllClaims`)**
     - Se utiliza el mismo método de firma para verificar que el token no ha sido alterado.
     - Se extraen todas las reclamaciones (claims), lo que permite acceder a información adicional almacenada en el token.
 #### Configuración en `application.properties`
@@ -2021,7 +2025,7 @@ public class SecurityBeansInjector {
 	 - Si el usuario no existe, lanza una excepción de autenticación.
  2. `passwordEncoder()`
 	- Crea una instancia de `BCryptPasswordEncoder` para codificar y comparar contraseñas de manera segura.
-9. `authenticationProvider()`
+1. `authenticationProvider()`
 	- Configura `DaoAuthenticationProvider` para utilizar nuestro `UserDetailsService` y `PasswordEncoder`.
  1. `authenticationManager()`
 	- Proporciona una instancia de `AuthenticationManager` para gestionar la autenticación de usuarios.
@@ -2127,18 +2131,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 }
 ```
 #### Explicación del código
-10. **Interceptar cada solicitud**
+1. **Interceptar cada solicitud**
     - Extendemos `OncePerRequestFilter`, lo que garantiza que nuestro filtro se ejecute una sola vez por solicitud.
-11. **Extraer y validar el token JWT**
+2. **Extraer y validar el token JWT**
     - Recuperamos el encabezado `"Authorization"`.
     - Verificamos que comience con `"Bearer "` para asegurarnos de que contiene un JWT.
     - Si no hay token, la solicitud continúa sin autenticación.
-12. **Autenticación del usuario**
+3. **Autenticación del usuario**
     - Extraemos el nombre de usuario del token JWT usando `jwtService.extractUsername(jwt)`.
     - Si el usuario ya está autenticado o no se encuentra en la base de datos, se devuelve un error.
     - Recuperamos el usuario desde la base de datos y creamos un `UsernamePasswordAuthenticationToken`.
     - Establecemos este token en el `SecurityContextHolder`, lo que significa que el usuario ahora está autenticado en la aplicación.
-13. **Manejo de errores**
+4. **Manejo de errores**
     - Si ocurre algún error durante la validación del token, se responde con un código `401 Unauthorized`.
 ### Configure el filtro solicitante de la aplicación
 Nuestra autenticación personalizada está lista, pero ahora debemos definir los criterios que debe cumplir una solicitud entrante antes de ser reenviada al middleware de la aplicación. Los criterios son los siguientes:
@@ -2229,13 +2233,13 @@ public class SecurityConfig {
 }
 ```
 #### Explicación de la Configuración
-14. **Deshabilitación de CSRF**
+1. **Deshabilitación de CSRF**
     - Se usa `csrf(AbstractHttpConfigurer::disable)` para desactivar la protección CSRF, ya que JWT maneja la autenticación.
-15. **Política de Sesión sin Estado**
+2. **Política de Sesión sin Estado**
     - Se configura `sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)` para evitar el uso de sesiones en la autenticación.
-16. **Autenticación mediante JWT**
+3. **Autenticación mediante JWT**
     - Se registra un `AuthenticationProvider` y se agrega el filtro `JwtAuthenticationFilter` antes del filtro estándar de usuario y contraseña.
-17. **Configuración de Rutas**
+4. **Configuración de Rutas**
     - Se permite acceso sin autenticación a rutas de autenticación (`/auth/login`, `/auth/register`) y documentación (`/doc/**`, `/swagger-ui/**`).
     - Se restringe el acceso a los productos, requiriendo permisos específicos.
     - Cualquier otra solicitud se bloquea con `denyAll()`.
@@ -2488,198 +2492,339 @@ public class EjemploDocApplication {
 }
 ```
 # Testing
-El testing de software es un proceso clave para garantizar la calidad, detectar errores y validar que el software cumpla con los requisitos. Se divide en dos tipos principales: manual y automatizado.
-## Testing manual
-Implica la ejecución de pruebas por parte de un tester, siguiendo procedimientos predefinidos para evaluar la experiencia del usuario y la funcionalidad del software.
-### Ventajas
-- Útil para pruebas exploratorias y de usabilidad.
-- Permite identificar problemas difíciles de detectar con pruebas automatizadas.
-### Desventajas
-- Más lento y propenso a errores humanos.
-- No es escalable ni repetible como las pruebas automatizadas.
-## Testing automatizado
-Utiliza herramientas y scripts para ejecutar pruebas sin intervención humana, ideal para pruebas repetitivas y de rendimiento.
-### Ventajas
-- Mayor velocidad y eficiencia.
-- Repetible y escalable para grandes volúmenes de pruebas.
-### Desventajas
-- No es adecuado para pruebas que requieren interpretación humana.
-- Requiere inversión en desarrollo y mantenimiento de scripts.
-## Tipos de pruebas automatizadas
-El testing automatizado abarca diferentes tipos de pruebas, cada una enfocada en evaluar aspectos específicos del software:
+Spring Boot simplifica el desarrollo de aplicaciones Spring, y lo mismo aplica para las pruebas. Ofrece utilidades específicas que facilitan:
 
-- **Pruebas unitarias**: Evalúan unidades de código individuales, como funciones o métodos, para verificar su funcionamiento aislado.
-- **Pruebas de integración**: Verifican la interacción entre módulos del software para garantizar que funcionen correctamente en conjunto.
-- **Pruebas funcionales**: Comprueban que el software cumpla con los requisitos funcionales esperados.
-- **Pruebas de regresión**: Aseguran que cambios en el código no introduzcan errores en funciones previamente operativas.
-- **Pruebas de aceptación**: Validan si el software cumple con los criterios definidos por el cliente o usuario final.
-- **Pruebas de carga**: Evalúan el rendimiento del software bajo diferentes niveles de uso.
-- **Pruebas de estrés**: Analizan la capacidad del software ante condiciones extremas.
-- **Pruebas de seguridad**: Detectan vulnerabilidades y evalúan la resistencia ante amenazas externas.
-## Pruebas unitarias
-Las pruebas unitarias validan el comportamiento esperado de unidades de código de manera aislada, garantizando su correcto funcionamiento.
-### Proceso de creación de pruebas unitarias
-18. **Definir casos de prueba**: Diseñar escenarios que cubran diferentes situaciones.
-19. **Desarrollar las pruebas**: Escribir scripts que validen el comportamiento esperado.
-20. **Ejecutar y analizar resultados**: Identificar fallos y corregir errores.
-## Implementación de JUnit
-JUnit es un framework de pruebas unitarias para Java que permite la creación, ejecución y verificación de tests automatizados. Es una herramienta fundamental en el desarrollo con Java para asegurar la calidad del código.
-### 1. Agregar dependencias
-Si creamos un proyecto con Spring Boot mediante Spring Initializr, se incluirá automáticamente la siguiente dependencia en el `pom.xml`: 
+- La configuración automática del contexto de pruebas.
+- El mockeo de dependencias mediante `@MockBean`.
+- La integración con frameworks como JUnit y Mockito.
+- La especialización de pruebas por capa: web, servicio, repositorio, etc.
+
+Aunque en la mayoría de proyectos Spring Boot ya viene incluida por defecto, es importante verificar que esté presente la siguiente dependencia en el `pom.xml`:
 ```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-test</artifactId>
-    <scope>test</scope>
+<dependency>  
+    <groupId>org.springframework.boot</groupId>  
+    <artifactId>spring-boot-starter-test</artifactId>  
+    <scope>test</scope>  
 </dependency>
 ```
-El paquete `spring-boot-starter-test` incluye **JUnit 5 (JUnit Jupiter)**, junto con otras bibliotecas útiles para testing en Spring Boot.
-### 2. Organización del código
-Por convención, los tests en Java se ubican en un paquete separado del código fuente principal para mantener una estructura organizada. En proyectos generados con Spring Boot, esta estructura ya está definida por defecto.
-### 3. Creación de tests
-Como ejemplo, crearemos una clase de pruebas llamada **CalculadoraTest** para testear la funcionalidad de la clase **Calculadora**. 
-```java
-package com.JUnit.testeandoClaculadora;
-import com.JUnit.testeandoClaculadora.model.Calculadora;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+Este _starter_ incluye:
 
-public class CalculadoraTest {
+- **JUnit 5** (plataforma de testing principal)
+- **Mockito** (para mockear dependencias)
+- **AssertJ** (para aserciones más expresivas)
+- **Spring Test** (utilidades de testing propias de Spring)
+- **Hamcrest** (para expresividad adicional en aserciones)
+
+Se recomienda revisar previamente la sección de testing general en [java](https://github.com/jose-016al/Java?tab=readme-ov-file#testing) (JUnit y Mockito), ya que esta parte se centra exclusivamente en las particularidades de trabajar con Spring Boot para realizar pruebas.
+
+Todos los ejemplos de esta sección están basados en un proyecto sencillo que puedes consultar y descargar desde el siguiente enlace:
+
+👉 [Proyecto Spring Boot Test](https://github.com/jose-016al/Spring-Boot/tree/master/Proyectos/springboot_test)
+
+El proyecto contiene dos clases principales en el paquete `models`: `Cuenta` y `Banco`.
+
+Ambas con su respectiva lógica de negocio, servicios y repositorios, cubriendo así un abanico completo de pruebas (unitarias, de integración y de capa web).
+## Pruebas unitarias
+A partir de **Spring Boot 3.2**, la anotación `@MockBean` ha sido reemplazada por `@MockitoBean`, que mejora el aislamiento y el rendimiento de las pruebas al integrarse de forma más directa con Mockito.
+
+Este tipo de prueba, aunque se conoce como "unitaria", en realidad es una prueba **semi-integrada**, ya que se carga el `ApplicationContext` completo mediante `@SpringBootTest`, pero se sustituyen los beans dependientes por mocks gestionados por Spring.
+### Anotaciones relevantes
+
+|Anotación|Descripción|
+|---|---|
+|`@SpringBootTest`|Carga el `ApplicationContext` completo. Útil para pruebas integradas o unitarias con beans gestionados por Spring.|
+|`@MockitoBean`|Crea un mock y lo reemplaza en el contexto de Spring. Sustituye a `@MockBean` desde Spring Boot 3.2.|
+|`@Autowired`|Inyecta un bean real del contexto de Spring, en este caso, el servicio que se va a probar.|
+### Diferencias con Mockito puro
+
+- En Mockito puro (`@Mock`, `@InjectMocks`), se crean instancias manuales sin el contexto de Spring.
+- Con `@MockitoBean`, Spring se encarga de inyectar los mocks directamente dentro de los beans reales definidos en el contexto.  
+    Por ejemplo, si `ICuentaService` depende de `CuentaRepository`, el mock se inyecta automáticamente en el servicio real.
+
+Esto permite probar la lógica del servicio sin necesidad de levantar controladores, bases de datos ni servidores web, pero manteniendo la infraestructura de Spring.
+### Ejemplo
+```java
+@SpringBootTest
+class SpringbootTestApplicationTests {
+
+    @MockitoBean
+    CuentaRepository cuentaRepository;
+
+    @MockitoBean
+    BancoRepository bancoRepository;
+
+    @Autowired
+    ICuentaService service;
 
     @Test
-    public void testCalcularSuma() {
-        Calculadora calculadora = new Calculadora();
-        Double resultado = calculadora.calcularSuma(3, 5);
-        assertEquals(8.0, resultado); // Verifica que la suma sea correcta (3 + 5 = 8)
+    void contextLoads() {
+        when(cuentaRepository.findById(1L)).thenReturn(crearCuenta001());
+        when(cuentaRepository.findById(2L)).thenReturn(crearCuenta002());
+        when(bancoRepository.findById(1L)).thenReturn(crearBanco());
+
+        BigDecimal saldoOrigen = service.revisarSaldo(1L);
+        BigDecimal saldoDestino = service.revisarSaldo(2L);
+
+        assertEquals("1000", saldoOrigen.toPlainString());
+        assertEquals("2000", saldoDestino.toPlainString());
+
+        service.transferir(1L, 2L, new BigDecimal("100"), 1L);
+
+        saldoOrigen = service.revisarSaldo(1L);
+        saldoDestino = service.revisarSaldo(2L);
+
+        assertEquals("900", saldoOrigen.toPlainString());
+        assertEquals("2100", saldoDestino.toPlainString());
+
+        int total = service.revisarTotalTransferencias(1L);
+        assertEquals(1, total);
+
+        verify(cuentaRepository, times(3)).findById(1L);
+        verify(cuentaRepository, times(3)).findById(2L);
+        verify(cuentaRepository, times(2)).save(any(Cuenta.class));
+
+        verify(bancoRepository, times(2)).findById(1L);
+        verify(bancoRepository).save(any(Banco.class));
+
+        verify(cuentaRepository, times(6)).findById(anyLong());
+        verify(cuentaRepository, never()).findAll();
     }
 }
 ```
-En este test:
+## Pruebas de integración (JPA)
+Las pruebas de integración verifican el funcionamiento real de varios componentes del sistema en conjunto. En el contexto de Spring Boot, es común aplicarlas a la capa de acceso a datos. Para ello, se utiliza la anotación `@DataJpaTest`, diseñada específicamente para este propósito.
 
-- La anotación `@Test` indica que es un test unitario.
-- Se crea una instancia de `Calculadora` y se llama al método `calcularSuma`.
-- Se usa `assertEquals` para verificar que el resultado sea el esperado
-## Anotaciones de JUnit
-JUnit proporciona diversas anotaciones para definir y estructurar pruebas unitarias. A continuación, se presentan las anotaciones más utilizadas, junto con sus descripciones y ejemplos:
-### Principales anotaciones de JUnit
+Características clave de `@DataJpaTest`:
 
-| Anotación          | Descripción                                                                         |
-| ------------------ | ----------------------------------------------------------------------------------- |
-| `@Test`            | Define un método como una prueba unitaria.                                          |
-| `@BeforeEach`      | Se ejecuta antes de cada test, útil para inicializar datos.                         |
-| `@AfterEach`       | Se ejecuta después de cada test, útil para limpiar recursos.                        |
-| `@BeforeAll`       | Se ejecuta una vez antes de todas las pruebas, ideal para configuraciones globales. |
-| `@AfterAll`        | Se ejecuta una vez después de todas las pruebas, útil para liberar recursos.        |
-| `@Disabled`        | Deshabilita un test para que no se ejecute.                                         |
-| `@RepeatedTest(n)` | Ejecuta un test varias veces.                                                       |
-### Aserciones en JUnit
-Las aserciones permiten verificar que los resultados de las pruebas son los esperados. A continuación, se muestran las más utilizadas:
+- Carga únicamente los beans relacionados con JPA (repositorios, entidades, configuración de persistencia).
+- Configura automáticamente una base de datos embebida en memoria (por defecto, H2).
+- Restaura el estado de la base de datos tras cada prueba (rollback automático).
+- No carga otros componentes como servicios o controladores.
 
-| Aserción                       | Descripción                                                | Ejemplo                                                                  |
-| ------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `assertEquals`                 | Verifica si dos valores son iguales.                       | `assertEquals(5, myNumber);`                                             |
-| `assertTrue` / `assertFalse`   | Verifica si una condición es verdadera o falsa.            | `assertTrue(result > 0); assertFalse(isEmpty);`                          |
-| `assertNull` / `assertNotNull` | Verifica si un valor es nulo o no.                         | `assertNull(myObject); assertNotNull(myObject);`                         |
-| `assertSame` / `assertNotSame` | Comprueba si dos referencias apuntan al mismo objeto o no. | `assertSame(expected, actual); assertNotSame(expected, actual);`         |
-| `assertThrows`                 | Verifica si un método lanza una excepción específica.      | `assertThrows(NullPointerException.class, () -> myObject.method(null));` |
-### Ejemplo 1: Prueba unitaria con `@BeforeEach` y `assertEquals`
-Este ejemplo muestra cómo configurar un objeto antes de cada prueba y validar el resultado de un método.
+### Dependencias necesarias
+Para que `@DataJpaTest` funcione correctamente con H2, es importante añadir explícitamente la dependencia, preferentemente con `scope` `test` si solo se usará durante las pruebas:
+```xml
+<dependency>  
+    <groupId>com.h2database</groupId>  
+    <artifactId>h2</artifactId>  
+    <scope>test</scope>
+</dependency>  
+
+<dependency>  
+    <groupId>org.springframework.boot</groupId>  
+    <artifactId>spring-boot-starter-data-jpa</artifactId>  
+</dependency>
+```
+### Anotaciones relevantes
+
+| Anotación      | Descripción                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------- |
+| `@DataJpaTest` | Carga solo la configuración necesaria para pruebas con JPA. Usa una base de datos embebida.       |
+| `@Autowired`   | Inyecta el bean del repositorio real, como `CuentaRepository`, para trabajar directamente con él. |
+### Ejemplo básico
 ```java
-package com.example.testing;
+@DataJpaTest
+class IntegracionJpaTest {
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+    @Autowired
+    private CuentaRepository cuentaRepository;
 
-class Calculadora {
-    public int sumar(int a, int b) {
-        return a + b;
+    @Test
+    void testFindById() {
+        Optional<Cuenta> cuenta = cuentaRepository.findById(1L);
+        assertTrue(cuenta.isPresent());
+        assertEquals("Andres", cuenta.orElseThrow().getPersona());
     }
 }
+```
+Este test se ejecuta contra una base de datos embebida (como H2), por lo que es necesario que exista un registro con ID `1`. Para ello, puede utilizarse un script SQL (`import.sql`, `data.sql`) ubicado en `src/test/resources`, o asegurarse de que las entidades y datos estén preconfigurados adecuadamente.
+### Consideraciones adicionales
+- Para evitar que Spring sustituya la base de datos configurada por una embebida, usar:
+```java
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+class IntegracionJpaTest {
+}
+```
+- Si se prefiere usar una base de datos real (PostgreSQL, MySQL, etc.) para una integración más fiel, puede integrarse con **Testcontainers**.
+- Para pruebas que incluyan más capas como servicios o controladores, no se debe usar `@DataJpaTest`, sino `@SpringBootTest`.
+## Pruebas de controladores
+Spring Boot permite probar controladores web de forma aislada, sin necesidad de levantar un servidor real ni cargar toda la aplicación. Una de las formas más comunes para esto es mediante `@WebMvcTest` junto con `MockMvc`.
+### `@WebMvcTest` + `MockMvc`
+Esta combinación permite ejecutar pruebas unitarias sobre la **capa de controladores**, sin cargar servicios, repositorios ni configuración externa. Es ideal para validar rutas, estructuras de respuesta, estados HTTP, encabezados y contenido JSON.
+#### Ventajas
+- Rápida ejecución.
+- Entorno aislado del resto de la aplicación.
+- Compatible con validación de JSON, códigos de estado HTTP, cabeceras, etc.
+- Compatible con controladores REST y tradicionales.
+#### Componentes involucrados
 
-public class CalculadoraTest {
-    
-    private Calculadora calculadora;
+- `@WebMvcTest(CuentaController.class)` → indica qué controlador se va a probar.
+- `MockMvc` → objeto principal para simular peticiones HTTP y validar respuestas.
+- `@MockitoBean` → sustituye beans reales por mocks para ser usados dentro del controlador.
+- `ObjectMapper` → utilizado para convertir objetos Java a JSON y viceversa.
+#### Ejemplo base
+```java
+@WebMvcTest(CuentaController.class)
+class CuentaControllerTest {
+
+    @Autowired
+    private MockMvc mvc;
+
+    @MockitoBean
+    private ICuentaService cuentaService;
+
+    ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        calculadora = new Calculadora(); // Se inicializa antes de cada test
+        objectMapper = new ObjectMapper();
     }
 
     @Test
-    void testSuma() {
-        int resultado = calculadora.sumar(3, 5);
-        assertEquals(8, resultado); // Verifica que 3 + 5 = 8
+    void testDetalle() throws Exception {
+        // ...
     }
 }
 ```
-### Ejemplo 2: Prueba de excepción con `assertThrows`
-Este ejemplo muestra cómo probar que un método lanza una excepción esperada.
+#### Estructura básica de un test
 ```java
-package com.example.testing;
-
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-class Division {
-    public double dividir(int a, int b) {
-        if (b == 0) {
-            throw new ArithmeticException("No se puede dividir por cero");
-        }
-        return (double) a / b;
-    }
-}
-
-public class DivisionTest {
-
-    @Test
-    void testDivisionPorCero() {
-        Division division = new Division();
-        assertThrows(ArithmeticException.class, () -> division.dividir(10, 0));
-    }
-}
+mvc.perform(<tipo de petición>(<url>)
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(<cuerpo JSON opcional>))
+   .andExpect(<condiciones de respuesta>);
 ```
-### Ejemplo 3: Uso de `@BeforeAll` y `@AfterAll`
-Este ejemplo muestra cómo ejecutar código antes y después de todas las pruebas.
+#### Ejemplos detallados
+##### 1. **GET** con `jsonPath`
 ```java
-package com.example.testing;
-
-import org.junit.jupiter.api.*;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-class ConexionBD {
-    public static ConexionBD conectar() {
-        return new ConexionBD();
-    }
-}
-
-public class ConexionBDTest {
-    
-    private static ConexionBD conexion;
-
-    @BeforeAll
-    static void setUp() {
-        System.out.println("Iniciando conexión a la base de datos...");
-        conexion = ConexionBD.conectar();
-    }
-
-    @Test
-    void testConexionNoNula() {
-        assertNotNull(conexion);
-    }
-
-    @AfterAll
-    static void tearDown() {
-        System.out.println("Cerrando conexión a la base de datos...");
-        conexion = null;
-    }
-}
-
+mvc.perform(get("/api/cuentas/1")
+        .contentType(MediaType.APPLICATION_JSON))
+   .andExpect(status().isOk())
+   .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+   .andExpect(jsonPath("$.persona").value("Andres"))
+   .andExpect(jsonPath("$.saldo").value("1000"));
 ```
+**Qué se valida:**
+- Que el endpoint `/api/cuentas/1` responde con status 200.
+- Que la respuesta es JSON.
+- Que los campos `"persona"` y `"saldo"` tienen los valores esperados.
+##### 2. **POST** con envío de JSON (`ObjectMapper`) y validación completa
+```java
+mvc.perform(post("/api/cuentas/transferir")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+   .andExpect(status().isOk())
+   .andExpect(jsonPath("$.mensaje").value("Transferencia realizada con éxito"))
+   .andExpect(jsonPath("$.transaccion.cuentaOrigenId").value(1L))
+   .andExpect(content().json(objectMapper.writeValueAsString(response)));
+```
+**Puntos clave:**
+- Se construye un DTO (`TransaccionDTO`) y se convierte a JSON con `objectMapper`.
+- Se valida que la respuesta contenga los valores esperados dentro del JSON anidado.
+- Se compara el JSON completo con un objeto `Map` serializado, útil para respuestas complejas.
+##### 3. **POST** para crear entidad
+```java
+mvc.perform(post("/api/cuentas")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(cuenta)))
+   .andExpect(status().isCreated())
+   .andExpect(jsonPath("$.id").value(3))
+   .andExpect(jsonPath("$.persona").value("Pepe"))
+   .andExpect(jsonPath("$.saldo").value(3000));
+```
+**Observaciones:**
+- Se simula la lógica del `save()` en el servicio para devolver una cuenta con ID generado.
+- Se verifica que el endpoint responde correctamente al crear un recurso.
+##### 4. **GET** para listar varias entidades
+```java
+mvc.perform(get("/api/cuentas")
+        .contentType(MediaType.APPLICATION_JSON))
+   .andExpect(status().isOk())
+   .andExpect(jsonPath("$[0].persona").value("Andres"))
+   .andExpect(jsonPath("$[1].persona").value("John"))
+   .andExpect(jsonPath("$", hasSize(2)));
+```
+**Notas:**
+- El JSON recibido se espera como una lista (`$[index]`).
+- `hasSize(2)` comprueba el tamaño exacto del array retornado.
+#### Utilidades clave
+
+- `MockMvcRequestBuilders` (estático): permite construir peticiones `get()`, `post()`, `put()`, `delete()`, etc.
+- `jsonPath("$..")`: permite navegar y validar cualquier nodo del JSON.
+- `objectMapper`: se usa para convertir DTOs y entidades a JSON y comparar con la respuesta esperada.
+- `verify(...)`: permite comprobar que se haya llamado a un método mockeado con ciertos argumentos.
+## Otras opciones para probar controladores
+Aunque `@WebMvcTest` con `MockMvc` es la forma más común y recomendada para probar controladores en proyectos Spring Boot clásicos (basados en Spring MVC), existen otras dos alternativas útiles en ciertos contextos: `WebTestClient` y `TestRestTemplate`.
+
+Estas herramientas se usan para pruebas de integración a través de peticiones HTTP reales.
+### `WebTestClient` (para apps reactivas o integración real)
+Cliente no bloqueante pensado para aplicaciones **reactivas con WebFlux**, aunque también puede usarse en proyectos normales con `Spring MVC`.
+
+Para poder usarla necesitamos implementar la dependencia de webflux en neustro pom.xml
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-webflux</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+#### Anotaciones y configuración
+```java
+@SpringBootTest(webEnvironment = RANDOM_PORT)
+class CuentaControllerWebTestClientTest {
+
+    @Autowired
+    private WebTestClient client;
+}
+```
+#### Ejemplo basico
+```java
+client.get().uri("/api/cuentas/1").exchange()
+      .expectStatus().isOk()
+      .expectHeader().contentType(MediaType.APPLICATION_JSON)
+      .expectBody()
+      .jsonPath("$.persona").isEqualTo("Andres");
+```
+#### Cuándo usarlo:
+- En proyectos con **Spring WebFlux**.
+- Para pruebas de integración real sin `MockMvc`.
+- Cuando se quiere probar el flujo HTTP completo, incluso cabeceras, encoding, errores globales, etc.
+### `TestRestTemplate` (bloqueante, clásico)
+`TestRestTemplate` es un cliente HTTP bloqueante, pensado para realizar pruebas de integración en aplicaciones basadas en **Spring MVC**, usando el servidor real (arrancado en un puerto aleatorio).
+
+Es útil cuando se quiere probar todo el flujo desde el controlador hacia la lógica interna, base de datos incluida.
+#### Anotaciones y configuración
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class CuentaControllerTestRestTemplateTest {
+
+    @Autowired
+    private TestRestTemplate client;
+
+    @LocalServerPort
+    private int puerto;
+
+    private String crearUri(String uri) {
+        return "http://localhost:" + puerto + uri;
+    }
+}
+```
+#### Ejemplo base: GET con respuesta como entidad
+```java
+ResponseEntity<Cuenta> respuesta = client.getForEntity(crearUri("/api/cuentas/1"), Cuenta.class);
+
+assertEquals(HttpStatus.OK, respuesta.getStatusCode());
+assertNotNull(respuesta.getBody());
+assertEquals("Andres", respuesta.getBody().getPersona());
+```
+#### Cuándo usarlo
+- Cuando se quiere probar el controlador con toda la lógica real por detrás.
+- Cuando no se usan mocks y se necesita una **prueba de integración completa**.
+- En APIs REST tradicionales (bloqueantes).
 # Despliegue con Docker
 Para desplegar una aplicación Spring con Docker, seguimos una serie de pasos organizados en tres etapas principales:
 
-21. **Creación del `.jar`**  
+1. **Creación del `.jar`**  
     Un `.jar` (Java ARchive) es un archivo ejecutable que contiene toda nuestra aplicación empaquetada junto con sus dependencias. Este formato nos permite ejecutar la aplicación sin necesidad de un entorno de desarrollo adicional.
 22. **Creación del `Dockerfile`**  
     El `Dockerfile` es un archivo que define las instrucciones para construir una imagen de Docker basada en nuestro `.jar`. Actúa como un intermediario entre el ejecutable de nuestra aplicación y el entorno en el que se ejecutará dentro de un contenedor.
@@ -2733,15 +2878,15 @@ También es importante revisar el archivo `pom.xml`, donde podemos modificar val
 Una vez verificados estos archivos, podemos proceder a generar el `.jar`. Existen diferentes formas de hacerlo, dependiendo del entorno de desarrollo que estemos utilizando.
 #### En IntelliJ IDEA
 
-24. Dirígete a la esquina superior derecha y selecciona el icono de **Maven**.
-25. En la ventana que se abre, busca la sección **Lifecycle** y selecciona **clean** para limpiar el proyecto.
-26. Luego, selecciona **install** para compilar y empaquetar el proyecto en un archivo `.jar`.
-27. El archivo `.jar` generado se almacenará en el directorio `target` del proyecto. Asegúrate de anotar su nombre, ya que lo necesitarás más adelante.
+1. Dirígete a la esquina superior derecha y selecciona el icono de **Maven**.
+2. En la ventana que se abre, busca la sección **Lifecycle** y selecciona **clean** para limpiar el proyecto.
+3. Luego, selecciona **install** para compilar y empaquetar el proyecto en un archivo `.jar`.
+4. El archivo `.jar` generado se almacenará en el directorio `target` del proyecto. Asegúrate de anotar su nombre, ya que lo necesitarás más adelante.
 #### En NetBeans
 
-28. Haz clic derecho sobre el proyecto en el panel de **Proyectos**.
-29. Selecciona la opción **Clean and Build**.
-30. NetBeans limpiará el proyecto y generará el `.jar`, que se guardará en el directorio `target` o su equivalente según la configuración del proyecto.
+1. Haz clic derecho sobre el proyecto en el panel de **Proyectos**.
+2. Selecciona la opción **Clean and Build**.
+3. NetBeans limpiará el proyecto y generará el `.jar`, que se guardará en el directorio `target` o su equivalente según la configuración del proyecto.
 
 > **Nota importante:** 
 > En algunos casos, IntelliJ no detecta las variables de entorno, incluso si están definidas en la configuración del IDE. Si esto ocurre, podemos generar el `.jar` manualmente desde la terminal.
@@ -2908,3 +3053,4 @@ También podemos combinar ambos comandos en uno solo:
 docker-compose up --build
 ```
 Este proceso iniciará los contenedores con nuestra aplicación y la base de datos. El tiempo de ejecución puede variar según las especificaciones de nuestro sistema o el servidor en el que estemos desplegando la aplicación.
+[[SQL]]
